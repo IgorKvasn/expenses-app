@@ -1,0 +1,54 @@
+package com.example.expensetracker.data.db.dao
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update
+import com.example.expensetracker.data.db.entity.IncomeEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface IncomeDao {
+    @Query("""
+        SELECT * FROM income
+        WHERE (:sourceSearch IS NULL OR source LIKE '%' || :sourceSearch || '%' COLLATE NOCASE)
+          AND (:dateFrom IS NULL OR date >= :dateFrom)
+          AND (:dateTo IS NULL OR date <= :dateTo)
+          AND (:amountMin IS NULL OR amountCents >= :amountMin)
+          AND (:amountMax IS NULL OR amountCents <= :amountMax)
+          AND (:noteSearch IS NULL OR note LIKE '%' || :noteSearch || '%' COLLATE NOCASE)
+        ORDER BY
+            CASE WHEN :sortOrder = 'DATE_DESC' THEN date END DESC,
+            CASE WHEN :sortOrder = 'DATE_ASC' THEN date END ASC,
+            CASE WHEN :sortOrder = 'AMOUNT_DESC' THEN amountCents END DESC,
+            CASE WHEN :sortOrder = 'AMOUNT_ASC' THEN amountCents END ASC
+    """)
+    fun getFiltered(
+        sourceSearch: String?,
+        dateFrom: String?,
+        dateTo: String?,
+        amountMin: Long?,
+        amountMax: Long?,
+        noteSearch: String?,
+        sortOrder: String,
+    ): Flow<List<IncomeEntity>>
+
+    @Query("SELECT * FROM income WHERE id = :id")
+    suspend fun getById(id: Long): IncomeEntity?
+
+    @Query("""
+        SELECT SUM(amountCents) FROM income
+        WHERE date >= :dateFrom AND date <= :dateTo
+    """)
+    suspend fun getTotalInRange(dateFrom: String, dateTo: String): Long?
+
+    @Insert
+    suspend fun insert(income: IncomeEntity): Long
+
+    @Update
+    suspend fun update(income: IncomeEntity)
+
+    @Delete
+    suspend fun delete(income: IncomeEntity)
+}

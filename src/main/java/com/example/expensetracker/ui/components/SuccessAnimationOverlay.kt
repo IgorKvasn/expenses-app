@@ -52,6 +52,7 @@ fun SuccessAnimationOverlay(
         val checkmarkScale = remember { Animatable(0f) }
         var showLabel by remember { mutableStateOf(false) }
         val labelAlpha = remember { Animatable(0f) }
+        val labelOffsetY = remember { Animatable(24f) }
 
         LaunchedEffect(Unit) {
             // Phase 1: Coin spin (800ms)
@@ -85,6 +86,9 @@ fun SuccessAnimationOverlay(
             }
             launch {
                 labelAlpha.animateTo(1f, animationSpec = tween(300))
+            }
+            launch {
+                labelOffsetY.animateTo(0f, animationSpec = tween(300))
             }
 
             // Phase 4: Hold then navigate
@@ -146,7 +150,10 @@ fun SuccessAnimationOverlay(
                         color = Color(0xFF4CAF50),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.graphicsLayer { alpha = labelAlpha.value },
+                        modifier = Modifier.graphicsLayer {
+                            alpha = labelAlpha.value
+                            translationY = labelOffsetY.value
+                        },
                     )
                 }
             }

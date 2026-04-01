@@ -17,9 +17,9 @@ interface IncomeDao {
           AND (:dateTo IS NULL OR date <= :dateTo)
           AND (:amountMin IS NULL OR amountCents >= :amountMin)
           AND (:amountMax IS NULL OR amountCents <= :amountMax)
-          AND (:search IS NULL OR source LIKE '%' || :search || '%' COLLATE NOCASE
+          AND (:search IS NULL OR (source LIKE '%' || :search || '%' COLLATE NOCASE
                OR note LIKE '%' || :search || '%' COLLATE NOCASE
-               OR CAST(amountCents AS TEXT) LIKE '%' || :search || '%')
+               OR CAST(amountCents AS TEXT) LIKE '%' || :search || '%'))
         ORDER BY
             CASE WHEN :sortOrder = 'DATE_DESC' THEN date END DESC,
             CASE WHEN :sortOrder = 'DATE_ASC' THEN date END ASC,

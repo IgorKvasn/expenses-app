@@ -1,7 +1,9 @@
 package com.example.expensetracker.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,15 +26,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.BackHandler
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+private val SuccessGreen = Color(0xFF4CAF50)
+private val OvershootEasing = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
 
 @Composable
 fun SuccessAnimationOverlay(
@@ -55,8 +60,18 @@ fun SuccessAnimationOverlay(
         val labelOffsetY = remember { Animatable(24f) }
 
         LaunchedEffect(Unit) {
+            // Reset all state in case of re-entry
+            coinRotation.snapTo(0f)
+            coinScale.snapTo(1f)
+            coinAlpha.snapTo(1f)
+            showCheckmark = false
+            showLabel = false
+            checkmarkScale.snapTo(0f)
+            labelAlpha.snapTo(0f)
+            labelOffsetY.snapTo(24f)
+
             // Phase 1: Coin spin (800ms)
-            launch {
+            val spinJob = launch {
                 coinRotation.animateTo(
                     targetValue = 720f,
                     animationSpec = tween(durationMillis = 800, easing = EaseInOut),
@@ -66,22 +81,19 @@ fun SuccessAnimationOverlay(
                 coinScale.animateTo(1.3f, animationSpec = tween(400, easing = EaseInOut))
                 coinScale.animateTo(1f, animationSpec = tween(400, easing = EaseInOut))
             }
-            delay(800)
+            spinJob.join()
 
             // Phase 2: Coin shrink (300ms)
             launch { coinScale.animateTo(0f, animationSpec = tween(300)) }
             coinAlpha.animateTo(0f, animationSpec = tween(300))
 
-            // Phase 3: Checkmark pop (400ms) + label fade (300ms)
+            // Phase 3: Checkmark pop (400ms) + label fade-up (300ms)
             showCheckmark = true
             showLabel = true
             launch {
                 checkmarkScale.animateTo(
                     targetValue = 1f,
-                    animationSpec = tween(
-                        durationMillis = 400,
-                        easing = androidx.compose.animation.core.CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f),
-                    ),
+                    animationSpec = tween(durationMillis = 400, easing = OvershootEasing),
                 )
             }
             launch {
@@ -93,10 +105,12 @@ fun SuccessAnimationOverlay(
 
             // Phase 4: Hold then navigate
             delay(500)
-            onAnimationEnd()
+            withContext(NonCancellable) {
+                onAnimationEnd()
+            }
         }
 
-        // Block back-press during animation
+        // Intentionally empty: block back-press so user can't interrupt the animation
         BackHandler {}
 
         Box(
@@ -107,10 +121,9 @@ fun SuccessAnimationOverlay(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(contentAlignment = Alignment.Center) {
-                    // Coin
                     if (!showCheckmark) {
                         Text(
-                            text = "🪙",
+                            text = "\uD83E\uDE99",
                             fontSize = 64.sp,
                             modifier = Modifier
                                 .graphicsLayer {
@@ -122,14 +135,16 @@ fun SuccessAnimationOverlay(
                         )
                     }
 
-                    // Checkmark
                     if (showCheckmark) {
                         Box(
                             modifier = Modifier
                                 .size(72.dp)
-                                .scale(checkmarkScale.value)
+                                .graphicsLayer {
+                                    scaleX = checkmarkScale.value
+                                    scaleY = checkmarkScale.value
+                                }
                                 .clip(CircleShape)
-                                .background(Color(0xFF4CAF50)),
+                                .background(SuccessGreen),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -147,7 +162,7 @@ fun SuccessAnimationOverlay(
                 if (showLabel) {
                     Text(
                         text = label,
-                        color = Color(0xFF4CAF50),
+                        color = SuccessGreen,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.graphicsLayer {

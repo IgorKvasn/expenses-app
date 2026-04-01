@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -31,11 +32,17 @@ import com.example.expensetracker.ui.settings.SettingsScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavGraph() {
+fun NavGraph(navigateToAddExpense: Boolean = false) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showTopBar = currentRoute in bottomNavItems.map { it.screen.route }
+
+    if (navigateToAddExpense) {
+        LaunchedEffect(Unit) {
+            navController.navigate(Screen.AddEditExpense.createRoute())
+        }
+    }
 
     Scaffold(
         topBar = {

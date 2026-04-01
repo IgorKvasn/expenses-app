@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.example.expensetracker.domain.usecase.GenerateRecurringExpensesUseCase
+import com.example.expensetracker.domain.usecase.GenerateRecurringIncomeUseCase
 import com.example.expensetracker.ui.navigation.NavGraph
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -19,17 +20,23 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var generateRecurringExpenses: GenerateRecurringExpensesUseCase
 
+    @Inject
+    lateinit var generateRecurringIncome: GenerateRecurringIncomeUseCase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         lifecycleScope.launch {
             generateRecurringExpenses(YearMonth.now())
+            generateRecurringIncome(YearMonth.now())
         }
+
+        val navigateToAddExpense = intent.getStringExtra("shortcut_action") == "add_expense"
 
         setContent {
             ExpenseTrackerTheme {
-                NavGraph()
+                NavGraph(navigateToAddExpense = navigateToAddExpense)
             }
         }
     }

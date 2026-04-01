@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "expense-tracker-export-v1",
+  "title": "Expense Tracker Export",
+  "description": "Full data export from the Expense Tracker Android app.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "exportedAt",
+    "categories",
+    "expenses",
+    "income",
+    "recurringExpenses",
+    "recurringExpenseGenerations",
+    "recurringIncomeGenerations"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version for forward compatibility."
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the export was created."
+    },
+    "categories": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/category" }
+    },
+    "expenses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/expense" }
+    },
+    "income": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/income" }
+    },
+    "recurringExpenses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/recurringExpense" }
+    },
+    "recurringExpenseGenerations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/recurringExpenseGeneration" }
+    },
+    "recurringIncomeGenerations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/recurringIncomeGeneration" }
+    }
+  },
+  "$defs": {
+    "category": {
+      "type": "object",
+      "required": ["id", "name", "isDefault"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "icon": { "type": ["string", "null"] },
+        "isDefault": { "type": "boolean" }
+      }
+    },
+    "expense": {
+      "type": "object",
+      "required": ["id", "amountCents", "categoryId", "date"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "amountCents": { "type": "integer" },
+        "categoryId": {
+          "type": "integer",
+          "description": "FK to categories[].id"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO 8601 date (YYYY-MM-DD)"
+        },
+        "note": { "type": ["string", "null"] },
+        "recurringExpenseId": {
+          "type": ["integer", "null"],
+          "description": "FK to recurringExpenses[].id, null if manual"
+        }
+      }
+    },
+    "income": {
+      "type": "object",
+      "required": ["id", "amountCents", "source", "date", "isRecurring"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "amountCents": { "type": "integer" },
+        "source": { "type": "string" },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO 8601 date (YYYY-MM-DD)"
+        },
+        "note": { "type": ["string", "null"] },
+        "isRecurring": { "type": "boolean" },
+        "recurrenceInterval": {
+          "type": ["string", "null"],
+          "enum": ["MONTHLY", "QUARTERLY", "HALF_YEARLY", null],
+          "description": "Null if isRecurring is false"
+        },
+        "startDate": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "ISO 8601 date, null if not recurring"
+        },
+        "recurringIncomeId": {
+          "type": ["integer", "null"],
+          "description": "FK to income[].id of the recurring template, null if not generated"
+        }
+      }
+    },
+    "recurringExpense": {
+      "type": "object",
+      "required": ["id", "amountCents", "categoryId", "interval", "startDate"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "amountCents": { "type": "integer" },
+        "categoryId": {
+          "type": "integer",
+          "description": "FK to categories[].id"
+        },
+        "interval": {
+          "type": "string",
+          "enum": ["MONTHLY", "QUARTERLY", "HALF_YEARLY"]
+        },
+        "note": { "type": ["string", "null"] },
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO 8601 date (YYYY-MM-DD)"
+        }
+      }
+    },
+    "recurringExpenseGeneration": {
+      "type": "object",
+      "required": ["id", "recurringExpenseId", "generatedForMonth", "expenseId"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "recurringExpenseId": {
+          "type": "integer",
+          "description": "FK to recurringExpenses[].id"
+        },
+        "generatedForMonth": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}$",
+          "description": "YYYY-MM format"
+        },
+        "expenseId": {
+          "type": "integer",
+          "description": "FK to expenses[].id"
+        }
+      }
+    },
+    "recurringIncomeGeneration": {
+      "type": "object",
+      "required": ["id", "recurringIncomeId", "generatedForMonth", "incomeId"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "recurringIncomeId": {
+          "type": "integer",
+          "description": "FK to income[].id of the recurring template"
+        },
+        "generatedForMonth": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}$",
+          "description": "YYYY-MM format"
+        },
+        "incomeId": {
+          "type": "integer",
+          "description": "FK to income[].id of the generated income"
+        }
+      }
+    }
+  }
+}

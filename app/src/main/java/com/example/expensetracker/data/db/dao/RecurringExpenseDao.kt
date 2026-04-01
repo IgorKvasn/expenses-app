@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RecurringExpenseDao {
-    @Query("SELECT * FROM recurring_expenses ORDER BY isActive DESC, dayOfMonth ASC")
+    @Query("SELECT * FROM recurring_expenses ORDER BY startDate ASC")
     fun getAll(): Flow<List<RecurringExpenseEntity>>
 
-    @Query("SELECT * FROM recurring_expenses WHERE isActive = 1")
-    suspend fun getActive(): List<RecurringExpenseEntity>
+    @Query("SELECT * FROM recurring_expenses")
+    suspend fun getAllSuspend(): List<RecurringExpenseEntity>
 
     @Query("SELECT * FROM recurring_expenses WHERE id = :id")
     suspend fun getById(id: Long): RecurringExpenseEntity?
@@ -27,4 +27,10 @@ interface RecurringExpenseDao {
 
     @Delete
     suspend fun delete(recurringExpense: RecurringExpenseEntity)
+
+    @Insert
+    suspend fun insertAll(recurringExpenses: List<RecurringExpenseEntity>)
+
+    @Query("DELETE FROM recurring_expenses")
+    suspend fun deleteAll()
 }

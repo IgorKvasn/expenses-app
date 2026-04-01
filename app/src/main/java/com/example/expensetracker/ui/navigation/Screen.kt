@@ -20,8 +20,12 @@ sealed class Screen(val route: String) {
     data object AddEditRecurringExpense : Screen("recurring/edit?id={id}") {
         fun createRoute(id: Long? = null) = if (id != null) "recurring/edit?id=$id" else "recurring/edit"
     }
+    data object AddEditRecurringIncome : Screen("recurring/income/edit?id={id}") {
+        fun createRoute(id: Long? = null) = if (id != null) "recurring/income/edit?id=$id" else "recurring/income/edit"
+    }
     data object Reports : Screen("reports")
     data object CategoryManagement : Screen("categories")
+    data object Settings : Screen("settings")
 }
 
 data class BottomNavItem(

@@ -23,4 +23,13 @@ interface RecurringExpenseGenerationDao {
 
     @Insert
     suspend fun insert(generation: RecurringExpenseGenerationEntity): Long
+
+    @Query("SELECT * FROM recurring_expense_generations")
+    suspend fun getAllSuspend(): List<RecurringExpenseGenerationEntity>
+
+    @Insert
+    suspend fun insertAll(generations: List<RecurringExpenseGenerationEntity>)
+
+    @Query("DELETE FROM recurring_expense_generations")
+    suspend fun deleteAll()
 }

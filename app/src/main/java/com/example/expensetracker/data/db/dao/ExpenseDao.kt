@@ -38,7 +38,7 @@ interface ExpenseDao {
     suspend fun getById(id: Long): ExpenseEntity?
 
     @Query("""
-        SELECT e.categoryId, c.name AS categoryName, SUM(e.amountCents) AS totalCents
+        SELECT e.categoryId, c.name AS categoryName, c.icon AS categoryIcon, SUM(e.amountCents) AS totalCents
         FROM expenses e
         JOIN categories c ON e.categoryId = c.id
         WHERE e.date >= :dateFrom AND e.date <= :dateTo
@@ -61,10 +61,20 @@ interface ExpenseDao {
 
     @Delete
     suspend fun delete(expense: ExpenseEntity)
+
+    @Query("SELECT * FROM expenses")
+    suspend fun getAllSuspend(): List<ExpenseEntity>
+
+    @Insert
+    suspend fun insertAll(expenses: List<ExpenseEntity>)
+
+    @Query("DELETE FROM expenses")
+    suspend fun deleteAll()
 }
 
 data class CategoryTotal(
     val categoryId: Long,
     val categoryName: String,
+    val categoryIcon: String?,
     val totalCents: Long,
 )

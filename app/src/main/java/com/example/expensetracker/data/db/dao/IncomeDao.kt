@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.Flow
 interface IncomeDao {
     @Query("""
         SELECT * FROM income
-        WHERE (:sourceSearch IS NULL OR source LIKE '%' || :sourceSearch || '%' COLLATE NOCASE)
+        WHERE (:isRecurring IS NULL OR isRecurring = :isRecurring)
+          AND (:sourceSearch IS NULL OR source LIKE '%' || :sourceSearch || '%' COLLATE NOCASE)
           AND (:dateFrom IS NULL OR date >= :dateFrom)
           AND (:dateTo IS NULL OR date <= :dateTo)
           AND (:amountMin IS NULL OR amountCents >= :amountMin)
@@ -25,6 +26,7 @@ interface IncomeDao {
             CASE WHEN :sortOrder = 'AMOUNT_ASC' THEN amountCents END ASC
     """)
     fun getFiltered(
+        isRecurring: Boolean?,
         sourceSearch: String?,
         dateFrom: String?,
         dateTo: String?,
@@ -33,6 +35,12 @@ interface IncomeDao {
         noteSearch: String?,
         sortOrder: String,
     ): Flow<List<IncomeEntity>>
+
+    @Query("SELECT * FROM income WHERE isRecurring = 1 ORDER BY source ASC")
+    fun getRecurring(): Flow<List<IncomeEntity>>
+
+    @Query("SELECT * FROM income WHERE isRecurring = 1")
+    suspend fun getAllRecurringSuspend(): List<IncomeEntity>
 
     @Query("SELECT * FROM income WHERE id = :id")
     suspend fun getById(id: Long): IncomeEntity?
@@ -51,4 +59,13 @@ interface IncomeDao {
 
     @Delete
     suspend fun delete(income: IncomeEntity)
+
+    @Query("SELECT * FROM income")
+    suspend fun getAllSuspend(): List<IncomeEntity>
+
+    @Insert
+    suspend fun insertAll(income: List<IncomeEntity>)
+
+    @Query("DELETE FROM income")
+    suspend fun deleteAll()
 }

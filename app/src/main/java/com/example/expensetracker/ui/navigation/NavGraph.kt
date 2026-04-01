@@ -1,12 +1,21 @@
 package com.example.expensetracker.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.expensetracker.ui.expenses.ExpenseListScreen
@@ -15,14 +24,35 @@ import com.example.expensetracker.ui.income.IncomeListScreen
 import com.example.expensetracker.ui.income.AddEditIncomeScreen
 import com.example.expensetracker.ui.recurring.RecurringListScreen
 import com.example.expensetracker.ui.recurring.AddEditRecurringExpenseScreen
+import com.example.expensetracker.ui.recurring.AddEditRecurringIncomeScreen
 import com.example.expensetracker.ui.reports.ReportsScreen
 import com.example.expensetracker.ui.categories.CategoryManagementScreen
+import com.example.expensetracker.ui.settings.SettingsScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val showTopBar = currentRoute in bottomNavItems.map { it.screen.route }
 
     Scaffold(
+        topBar = {
+            if (showTopBar) {
+                TopAppBar(
+                    title = {
+                        val label = bottomNavItems.find { it.screen.route == currentRoute }?.label ?: ""
+                        Text(label)
+                    },
+                    actions = {
+                        IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
+                            Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                        }
+                    },
+                )
+            }
+        },
         bottomBar = { BottomNavBar(navController) },
     ) { innerPadding ->
         NavHost(
@@ -67,6 +97,8 @@ fun NavGraph() {
                 RecurringListScreen(
                     onAddRecurring = { navController.navigate(Screen.AddEditRecurringExpense.createRoute()) },
                     onEditRecurring = { id -> navController.navigate(Screen.AddEditRecurringExpense.createRoute(id)) },
+                    onAddRecurringIncome = { navController.navigate(Screen.AddEditRecurringIncome.createRoute()) },
+                    onEditRecurringIncome = { id -> navController.navigate(Screen.AddEditRecurringIncome.createRoute(id)) },
                 )
             }
             composable(
@@ -79,11 +111,26 @@ fun NavGraph() {
                     onNavigateBack = { navController.popBackStack() },
                 )
             }
+            composable(
+                route = Screen.AddEditRecurringIncome.route,
+                arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getLong("id")?.takeIf { it != -1L }
+                AddEditRecurringIncomeScreen(
+                    recurringIncomeId = id,
+                    onNavigateBack = { navController.popBackStack() },
+                )
+            }
             composable(Screen.Reports.route) {
                 ReportsScreen()
             }
             composable(Screen.CategoryManagement.route) {
                 CategoryManagementScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                )
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
                 )
             }

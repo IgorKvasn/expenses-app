@@ -18,4 +18,6 @@ data class IncomeEntity(
     val note: String? = null,
     val isRecurring: Boolean = false,
     val recurrenceInterval: Interval? = null,
+    val startDate: String? = null,
+    val recurringIncomeId: Long? = null,
 )

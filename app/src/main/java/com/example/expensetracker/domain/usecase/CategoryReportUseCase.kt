@@ -16,6 +16,7 @@ class CategoryReportUseCase @Inject constructor(
             CategorySpending(
                 categoryId = ct.categoryId,
                 categoryName = ct.categoryName,
+                categoryIcon = ct.categoryIcon,
                 totalCents = ct.totalCents,
                 percentage = if (grandTotal > 0) ct.totalCents.toDouble() / grandTotal * 100.0 else 0.0,
             )

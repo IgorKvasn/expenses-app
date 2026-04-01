@@ -19,8 +19,8 @@ class CategoryReportUseCaseTest {
         coEvery {
             expenseRepository.getCategoryTotals(any(), any())
         } returns listOf(
-            CategoryTotal(1, "Food", 60000),
-            CategoryTotal(2, "Transport", 40000),
+            CategoryTotal(1, "Food", "restaurant", 60000),
+            CategoryTotal(2, "Transport", "directions_car", 40000),
         )
 
         val report = useCase(

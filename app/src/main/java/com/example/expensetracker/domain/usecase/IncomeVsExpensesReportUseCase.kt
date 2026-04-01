@@ -20,8 +20,8 @@ class IncomeVsExpensesReportUseCase @Inject constructor(
         val endMonth = YearMonth.from(to)
 
         while (!month.isAfter(endMonth)) {
-            val monthStart = month.atDay(1)
-            val monthEnd = month.atEndOfMonth()
+            val monthStart = maxOf(month.atDay(1), from)
+            val monthEnd = minOf(month.atEndOfMonth(), to)
             val income = incomeRepository.getTotalInRange(monthStart, monthEnd)
             val expenses = expenseRepository.getTotalInRange(monthStart, monthEnd)
             val label = month.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)

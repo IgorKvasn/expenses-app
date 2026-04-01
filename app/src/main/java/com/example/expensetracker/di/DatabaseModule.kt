@@ -10,6 +10,7 @@ import com.example.expensetracker.data.db.dao.ExpenseDao
 import com.example.expensetracker.data.db.dao.IncomeDao
 import com.example.expensetracker.data.db.dao.RecurringExpenseDao
 import com.example.expensetracker.data.db.dao.RecurringExpenseGenerationDao
+import com.example.expensetracker.data.db.dao.RecurringIncomeGenerationDao
 import com.example.expensetracker.data.seed.defaultCategories
 import dagger.Module
 import dagger.Provides
@@ -37,6 +38,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "expense_tracker.db",
         )
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
@@ -63,4 +65,8 @@ object DatabaseModule {
     @Provides
     fun provideRecurringExpenseGenerationDao(db: AppDatabase): RecurringExpenseGenerationDao =
         db.recurringExpenseGenerationDao()
+
+    @Provides
+    fun provideRecurringIncomeGenerationDao(db: AppDatabase): RecurringIncomeGenerationDao =
+        db.recurringIncomeGenerationDao()
 }

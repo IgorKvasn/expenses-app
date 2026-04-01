@@ -7,6 +7,7 @@ import com.example.expensetracker.data.db.entity.RecurringExpenseEntity
 import com.example.expensetracker.data.repository.CategoryRepository
 import com.example.expensetracker.data.repository.RecurringExpenseRepository
 import com.example.expensetracker.domain.model.Interval
+import com.example.expensetracker.domain.usecase.GenerateRecurringExpensesUseCase
 import com.example.expensetracker.ui.components.amountStringToCents
 import com.example.expensetracker.ui.components.centsToAmountString
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,12 +16,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
 @HiltViewModel
 class AddEditRecurringExpenseViewModel @Inject constructor(
     private val recurringExpenseRepository: RecurringExpenseRepository,
+    private val generateRecurringExpenses: GenerateRecurringExpensesUseCase,
     categoryRepository: CategoryRepository,
 ) : ViewModel() {
 
@@ -29,9 +32,12 @@ class AddEditRecurringExpenseViewModel @Inject constructor(
 
     val amount = MutableStateFlow("")
     val categoryId = MutableStateFlow<Long?>(null)
-    val dayOfMonth = MutableStateFlow("1")
+    val startDate = MutableStateFlow(LocalDate.now())
     val interval = MutableStateFlow(Interval.MONTHLY)
     val note = MutableStateFlow("")
+
+    val amountError = MutableStateFlow<String?>(null)
+    val categoryError = MutableStateFlow<String?>(null)
 
     private var editingId: Long? = null
 
@@ -41,33 +47,44 @@ class AddEditRecurringExpenseViewModel @Inject constructor(
             editingId = item.id
             amount.value = centsToAmountString(item.amountCents)
             categoryId.value = item.categoryId
-            dayOfMonth.value = item.dayOfMonth.toString()
+            startDate.value = LocalDate.parse(item.startDate)
             interval.value = item.interval
             note.value = item.note ?: ""
         }
     }
 
+    fun delete(onComplete: () -> Unit) {
+        val id = editingId ?: return
+        viewModelScope.launch {
+            val entity = recurringExpenseRepository.getById(id) ?: return@launch
+            recurringExpenseRepository.delete(entity)
+            onComplete()
+        }
+    }
+
     fun save(onComplete: () -> Unit) {
-        val cents = amountStringToCents(amount.value) ?: return
-        val catId = categoryId.value ?: return
-        val day = dayOfMonth.value.toIntOrNull()?.coerceIn(1, 31) ?: return
+        val cents = amountStringToCents(amount.value)
+        val catId = categoryId.value
+
+        amountError.value = if (cents == null) "Enter a valid amount" else null
+        categoryError.value = if (catId == null) "Select a category" else null
+        if (cents == null || catId == null) return
 
         viewModelScope.launch {
             val entity = RecurringExpenseEntity(
                 id = editingId ?: 0,
                 amountCents = cents,
                 categoryId = catId,
-                dayOfMonth = day,
                 interval = interval.value,
                 note = note.value.ifBlank { null },
-                isActive = true,
-                startMonth = YearMonth.now().toString(),
+                startDate = startDate.value.toString(),
             )
             if (editingId != null) {
                 recurringExpenseRepository.update(entity)
             } else {
                 recurringExpenseRepository.insert(entity)
             }
+            generateRecurringExpenses(YearMonth.now())
             onComplete()
         }
     }

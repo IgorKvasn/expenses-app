@@ -3,6 +3,7 @@ package com.example.expensetracker.domain.model
 data class CategorySpending(
     val categoryId: Long,
     val categoryName: String,
+    val categoryIcon: String?,
     val totalCents: Long,
     val percentage: Double,
 )

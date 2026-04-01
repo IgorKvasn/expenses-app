@@ -31,6 +31,9 @@ class AddEditExpenseViewModel @Inject constructor(
     val date = MutableStateFlow(LocalDate.now())
     val note = MutableStateFlow("")
 
+    val amountError = MutableStateFlow<String?>(null)
+    val categoryError = MutableStateFlow<String?>(null)
+
     private var editingExpenseId: Long? = null
 
     fun loadExpense(id: Long) {
@@ -44,9 +47,22 @@ class AddEditExpenseViewModel @Inject constructor(
         }
     }
 
+    fun delete(onComplete: () -> Unit) {
+        val id = editingExpenseId ?: return
+        viewModelScope.launch {
+            val entity = expenseRepository.getById(id) ?: return@launch
+            expenseRepository.delete(entity)
+            onComplete()
+        }
+    }
+
     fun save(onComplete: () -> Unit) {
-        val cents = amountStringToCents(amount.value) ?: return
-        val catId = categoryId.value ?: return
+        val cents = amountStringToCents(amount.value)
+        val catId = categoryId.value
+
+        amountError.value = if (cents == null) "Enter a valid amount" else null
+        categoryError.value = if (catId == null) "Select a category" else null
+        if (cents == null || catId == null) return
 
         viewModelScope.launch {
             val entity = ExpenseEntity(

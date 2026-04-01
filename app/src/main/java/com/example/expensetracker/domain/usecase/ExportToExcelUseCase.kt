@@ -3,9 +3,9 @@ package com.example.expensetracker.domain.usecase
 import com.example.expensetracker.data.db.entity.CategoryEntity
 import com.example.expensetracker.data.db.entity.ExpenseEntity
 import com.example.expensetracker.data.db.entity.IncomeEntity
-import org.apache.poi.ss.usermodel.CellStyle
-import org.apache.poi.ss.usermodel.Workbook
+import org.apache.poi.xssf.usermodel.XSSFCellStyle
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import com.example.expensetracker.ui.components.DateFormatter
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -28,7 +28,7 @@ class ExportToExcelUseCase @Inject constructor() {
         workbook.close()
     }
 
-    private fun createHeaderStyle(workbook: Workbook): CellStyle {
+    private fun createHeaderStyle(workbook: XSSFWorkbook): XSSFCellStyle {
         val style = workbook.createCellStyle()
         val font = workbook.createFont()
         font.bold = true
@@ -38,7 +38,7 @@ class ExportToExcelUseCase @Inject constructor() {
 
     private fun writeExpenseSheet(
         workbook: XSSFWorkbook,
-        headerStyle: CellStyle,
+        headerStyle: XSSFCellStyle,
         expenses: List<ExpenseEntity>,
         categories: Map<Long, CategoryEntity>,
     ) {
@@ -53,18 +53,21 @@ class ExportToExcelUseCase @Inject constructor() {
 
         expenses.forEachIndexed { index, expense ->
             val row = sheet.createRow(index + 1)
-            row.createCell(0).setCellValue(expense.date.toString())
+            row.createCell(0).setCellValue(DateFormatter.format(expense.date))
             row.createCell(1).setCellValue(expense.amountCents / 100.0)
             row.createCell(2).setCellValue(categories[expense.categoryId]?.name ?: "Unknown")
             row.createCell(3).setCellValue(expense.note ?: "")
         }
 
-        headers.indices.forEach { sheet.autoSizeColumn(it) }
+        sheet.setColumnWidth(0, 12 * 256) // Date
+        sheet.setColumnWidth(1, 12 * 256) // Amount
+        sheet.setColumnWidth(2, 20 * 256) // Category
+        sheet.setColumnWidth(3, 30 * 256) // Note
     }
 
     private fun writeIncomeSheet(
         workbook: XSSFWorkbook,
-        headerStyle: CellStyle,
+        headerStyle: XSSFCellStyle,
         income: List<IncomeEntity>,
     ) {
         val sheet = workbook.createSheet("Income")
@@ -78,12 +81,15 @@ class ExportToExcelUseCase @Inject constructor() {
 
         income.forEachIndexed { index, item ->
             val row = sheet.createRow(index + 1)
-            row.createCell(0).setCellValue(item.date.toString())
+            row.createCell(0).setCellValue(DateFormatter.format(item.date))
             row.createCell(1).setCellValue(item.amountCents / 100.0)
             row.createCell(2).setCellValue(item.source)
             row.createCell(3).setCellValue(item.note ?: "")
         }
 
-        headers.indices.forEach { sheet.autoSizeColumn(it) }
+        sheet.setColumnWidth(0, 12 * 256) // Date
+        sheet.setColumnWidth(1, 12 * 256) // Amount
+        sheet.setColumnWidth(2, 20 * 256) // Source
+        sheet.setColumnWidth(3, 30 * 256) // Note
     }
 }

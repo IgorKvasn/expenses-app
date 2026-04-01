@@ -2837,7 +2837,7 @@ private fun ExpenseItem(
                     Text(categoryName, style = MaterialTheme.typography.titleMedium)
                     Text(expense.date.toString(), style = MaterialTheme.typography.bodySmall)
                     if (!expense.note.isNullOrBlank()) {
-                        Text(expense.note, style = MaterialTheme.typography.bodySmall)
+                        Text(expense.note, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -2995,6 +2995,15 @@ class AddEditExpenseViewModel @Inject constructor(
         }
     }
 
+    fun delete(onComplete: () -> Unit) {
+        val id = editingExpenseId ?: return
+        viewModelScope.launch {
+            val entity = expenseRepository.getById(id) ?: return@launch
+            expenseRepository.delete(entity)
+            onComplete()
+        }
+    }
+
     fun save(onComplete: () -> Unit) {
         val cents = amountStringToCents(amount.value) ?: return
         val catId = categoryId.value ?: return
@@ -3030,12 +3039,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -3076,6 +3088,7 @@ fun AddEditExpenseScreen(
     val categories by viewModel.categories.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -3084,6 +3097,17 @@ fun AddEditExpenseScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (expenseId != null) {
+                        IconButton(onClick = { showDeleteConfirmation = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete expense",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 },
             )
@@ -3137,6 +3161,25 @@ fun AddEditExpenseScreen(
                 Text(if (expenseId != null) "Update" else "Add")
             }
         }
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete expense?") },
+            text = { Text("This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirmation = false
+                    viewModel.delete(onComplete = onNavigateBack)
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+            },
+        )
     }
 
     if (showDatePicker) {
@@ -3387,7 +3430,7 @@ fun IncomeListScreen(
                                         Text(income.source, style = MaterialTheme.typography.titleMedium)
                                         Text(income.date.toString(), style = MaterialTheme.typography.bodySmall)
                                         if (!income.note.isNullOrBlank()) {
-                                            Text(income.note, style = MaterialTheme.typography.bodySmall)
+                                            Text(income.note, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                     }
                                     Text(
@@ -3448,6 +3491,15 @@ class AddEditIncomeViewModel @Inject constructor(
         }
     }
 
+    fun delete(onComplete: () -> Unit) {
+        val id = editingIncomeId ?: return
+        viewModelScope.launch {
+            val entity = incomeRepository.getById(id) ?: return@launch
+            incomeRepository.delete(entity)
+            onComplete()
+        }
+    }
+
     fun save(onComplete: () -> Unit) {
         val cents = amountStringToCents(amount.value) ?: return
         if (source.value.isBlank()) return
@@ -3487,12 +3539,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -3530,6 +3585,7 @@ fun AddEditIncomeScreen(
     val note by viewModel.note.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -3538,6 +3594,17 @@ fun AddEditIncomeScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (incomeId != null) {
+                        IconButton(onClick = { showDeleteConfirmation = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete income",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 },
             )
@@ -3592,6 +3659,25 @@ fun AddEditIncomeScreen(
         }
     }
 
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete income?") },
+            text = { Text("This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirmation = false
+                    viewModel.delete(onComplete = onNavigateBack)
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
@@ -3641,7 +3727,7 @@ git commit -m "feat: add income list and add/edit screens for one-time income"
 
 - [ ] **Step 1: Create RecurringListViewModel**
 
-The ViewModel loads both recurring expenses and recurring income, and provides delete methods for both.
+The ViewModel loads both recurring expenses and recurring income. Delete is handled in the AddEdit screens.
 
 ```kotlin
 package com.example.expensetracker.ui.recurring
@@ -3658,7 +3744,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -3678,24 +3763,12 @@ class RecurringListViewModel @Inject constructor(
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun deleteExpense(item: RecurringExpenseEntity) {
-        viewModelScope.launch {
-            recurringExpenseRepository.delete(item)
-        }
-    }
-
-    fun deleteIncome(item: IncomeEntity) {
-        viewModelScope.launch {
-            incomeRepository.delete(item)
-        }
-    }
 }
 ```
 
 - [ ] **Step 2: Create RecurringListScreen**
 
-The screen shows both recurring expenses and recurring income in sections. Expenses are shown with a red ArrowDownward icon, income with a green ArrowUpward icon. The FAB opens a dropdown to choose what to add.
+The screen shows both recurring expenses and recurring income in sections. Expenses are shown with a red ArrowDownward icon, income with a green ArrowUpward icon. The FAB opens a dropdown to choose what to add. Delete is handled in the AddEdit detail screens (trash icon in TopAppBar).
 
 ```kotlin
 package com.example.expensetracker.ui.recurring
@@ -3716,17 +3789,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -3838,7 +3908,7 @@ fun RecurringListScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                     if (!item.note.isNullOrBlank()) {
-                                        Text(item.note, style = MaterialTheme.typography.bodySmall)
+                                        Text(item.note, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
                                 Text(
@@ -3846,9 +3916,6 @@ fun RecurringListScreen(
                                     style = MaterialTheme.typography.titleMedium,
                                     color = ExpenseRed,
                                 )
-                                IconButton(onClick = { viewModel.deleteExpense(item) }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = "Delete")
-                                }
                             }
                         }
                     }
@@ -3893,7 +3960,7 @@ fun RecurringListScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                     if (!item.note.isNullOrBlank()) {
-                                        Text(item.note, style = MaterialTheme.typography.bodySmall)
+                                        Text(item.note, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
                                 Text(
@@ -3901,9 +3968,6 @@ fun RecurringListScreen(
                                     style = MaterialTheme.typography.titleMedium,
                                     color = IncomeGreen,
                                 )
-                                IconButton(onClick = { viewModel.deleteIncome(item) }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = "Delete")
-                                }
                             }
                         }
                     }
@@ -3966,6 +4030,15 @@ class AddEditRecurringExpenseViewModel @Inject constructor(
         }
     }
 
+    fun delete(onComplete: () -> Unit) {
+        val id = editingId ?: return
+        viewModelScope.launch {
+            val entity = recurringExpenseRepository.getById(id) ?: return@launch
+            recurringExpenseRepository.delete(entity)
+            onComplete()
+        }
+    }
+
     fun save(onComplete: () -> Unit) {
         val cents = amountStringToCents(amount.value) ?: return
         val catId = categoryId.value ?: return
@@ -4006,6 +4079,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -4015,6 +4090,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -4059,7 +4135,27 @@ fun AddEditRecurringExpenseScreen(
     val categories by viewModel.categories.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     val dateFormatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM) }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete recurring expense?") },
+            text = { Text("This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirmation = false
+                    viewModel.delete(onComplete = onNavigateBack)
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+            },
+        )
+    }
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -4092,6 +4188,17 @@ fun AddEditRecurringExpenseScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (recurringExpenseId != null) {
+                        IconButton(onClick = { showDeleteConfirmation = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete recurring expense",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 },
             )
@@ -4220,6 +4327,15 @@ class AddEditRecurringIncomeViewModel @Inject constructor(
         }
     }
 
+    fun delete(onComplete: () -> Unit) {
+        val id = editingIncomeId ?: return
+        viewModelScope.launch {
+            val entity = incomeRepository.getById(id) ?: return@launch
+            incomeRepository.delete(entity)
+            onComplete()
+        }
+    }
+
     fun save(onComplete: () -> Unit) {
         val cents = amountStringToCents(amount.value) ?: return
         if (source.value.isBlank()) return
@@ -4262,6 +4378,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -4271,6 +4389,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -4313,7 +4432,27 @@ fun AddEditRecurringIncomeScreen(
     val note by viewModel.note.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     val dateFormatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM) }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete recurring income?") },
+            text = { Text("This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirmation = false
+                    viewModel.delete(onComplete = onNavigateBack)
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+            },
+        )
+    }
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -4346,6 +4485,17 @@ fun AddEditRecurringIncomeScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (recurringIncomeId != null) {
+                        IconButton(onClick = { showDeleteConfirmation = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete recurring income",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 },
             )
@@ -5551,5 +5701,28 @@ Material 3 screen with:
 - Confirmation dialog for import: "This will replace all existing data. Are you sure?"
 - Snackbar for success/error feedback
 - Loading indicator during export/import operations
+
+---
+
+### Task 25: Recurring Item Indicator in List Screens
+
+**Goal:** Add a repeat icon next to the date on expense and income list items that are recurring, so users can visually distinguish them from one-time entries.
+
+**Files modified:**
+- `app/src/main/java/com/example/expensetracker/ui/expenses/ExpenseListScreen.kt`
+- `app/src/main/java/com/example/expensetracker/ui/income/IncomeListScreen.kt`
+- `app/src/main/java/com/example/expensetracker/ui/income/IncomeListViewModel.kt`
+
+- [x] **Step 1: Add repeat icon to ExpenseListScreen**
+
+In the `ExpenseItem` composable, wrap the date `Text` in a `Row` and conditionally show `Icons.Filled.Repeat` (16dp, `primary` tint) when `expense.recurringExpenseId != null`.
+
+- [x] **Step 2: Include recurring income in IncomeListViewModel**
+
+Change `isRecurring = false` to `isRecurring = null` in the `IncomeFilter` so that both one-time and recurring income items appear in the income list.
+
+- [x] **Step 3: Add repeat icon to IncomeListScreen**
+
+In the income card composable, wrap the date `Text` in a `Row` and conditionally show `Icons.Filled.Repeat` (16dp, `primary` tint) when `income.isRecurring`.
 
 ---

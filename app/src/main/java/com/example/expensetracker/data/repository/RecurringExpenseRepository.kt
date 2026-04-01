@@ -15,7 +15,7 @@ class RecurringExpenseRepository @Inject constructor(
 ) {
     fun getAll(): Flow<List<RecurringExpenseEntity>> = recurringExpenseDao.getAll()
 
-    suspend fun getActive(): List<RecurringExpenseEntity> = recurringExpenseDao.getActive()
+    suspend fun getAllSuspend(): List<RecurringExpenseEntity> = recurringExpenseDao.getAllSuspend()
 
     suspend fun getById(id: Long): RecurringExpenseEntity? = recurringExpenseDao.getById(id)
 

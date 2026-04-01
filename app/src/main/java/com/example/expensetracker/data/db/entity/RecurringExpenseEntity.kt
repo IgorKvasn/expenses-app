@@ -22,9 +22,7 @@ data class RecurringExpenseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val amountCents: Long,
     val categoryId: Long,
-    val dayOfMonth: Int,
     val interval: Interval,
     val note: String? = null,
-    val isActive: Boolean = true,
-    val startMonth: String,
+    val startDate: String,
 )

@@ -1,5 +1,7 @@
 package com.example.expensetracker.ui.recurring
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,31 +43,28 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.expensetracker.domain.model.Interval
 import com.example.expensetracker.ui.components.AmountInput
-import com.example.expensetracker.ui.components.CategoryPicker
 import com.example.expensetracker.ui.components.DateFormatter
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditRecurringExpenseScreen(
-    recurringExpenseId: Long?,
+fun AddEditRecurringIncomeScreen(
+    recurringIncomeId: Long?,
     onNavigateBack: () -> Unit,
-    viewModel: AddEditRecurringExpenseViewModel = hiltViewModel(),
+    viewModel: AddEditRecurringIncomeViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(recurringExpenseId) {
-        if (recurringExpenseId != null) viewModel.loadRecurringExpense(recurringExpenseId)
+    LaunchedEffect(recurringIncomeId) {
+        if (recurringIncomeId != null) viewModel.loadIncome(recurringIncomeId)
     }
 
     val amount by viewModel.amount.collectAsStateWithLifecycle()
-    val categoryId by viewModel.categoryId.collectAsStateWithLifecycle()
+    val source by viewModel.source.collectAsStateWithLifecycle()
+    val recurrenceInterval by viewModel.recurrenceInterval.collectAsStateWithLifecycle()
     val startDate by viewModel.startDate.collectAsStateWithLifecycle()
-    val interval by viewModel.interval.collectAsStateWithLifecycle()
     val note by viewModel.note.collectAsStateWithLifecycle()
-    val categories by viewModel.categories.collectAsStateWithLifecycle()
     val amountError by viewModel.amountError.collectAsStateWithLifecycle()
-    val categoryError by viewModel.categoryError.collectAsStateWithLifecycle()
+    val sourceError by viewModel.sourceError.collectAsStateWithLifecycle()
 
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -73,7 +72,7 @@ fun AddEditRecurringExpenseScreen(
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete recurring expense?") },
+            title = { Text("Delete recurring income?") },
             text = { Text("This action cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = {
@@ -116,7 +115,7 @@ fun AddEditRecurringExpenseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (recurringExpenseId != null) "Edit Recurring" else "Add Recurring") },
+                title = { Text(if (recurringIncomeId != null) "Edit Recurring Income" else "Add Recurring Income") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
@@ -126,11 +125,11 @@ fun AddEditRecurringExpenseScreen(
                     }
                 },
                 actions = {
-                    if (recurringExpenseId != null) {
+                    if (recurringIncomeId != null) {
                         IconButton(onClick = { showDeleteConfirmation = true }) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Delete recurring expense",
+                                contentDescription = "Delete recurring income",
                                 tint = MaterialTheme.colorScheme.error,
                             )
                         }
@@ -150,14 +149,16 @@ fun AddEditRecurringExpenseScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(12.dp))
-            CategoryPicker(
-                categories = categories,
-                selectedCategoryId = categoryId,
-                onCategorySelected = {
-                    viewModel.categoryId.value = it
-                    viewModel.categoryError.value = null
+            OutlinedTextField(
+                value = source,
+                onValueChange = {
+                    viewModel.source.value = it
+                    viewModel.sourceError.value = null
                 },
-                errorMessage = categoryError,
+                label = { Text("Source") },
+                singleLine = true,
+                isError = sourceError != null,
+                supportingText = sourceError?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -167,10 +168,10 @@ fun AddEditRecurringExpenseScreen(
                 readOnly = true,
                 label = { Text("First occurrence date") },
                 modifier = Modifier.fillMaxWidth(),
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also { source ->
+                interactionSource = remember { MutableInteractionSource() }.also { source ->
                     LaunchedEffect(source) {
                         source.interactions.collect { interaction ->
-                            if (interaction is androidx.compose.foundation.interaction.PressInteraction.Release) {
+                            if (interaction is PressInteraction.Release) {
                                 showDatePicker = true
                             }
                         }
@@ -184,7 +185,7 @@ fun AddEditRecurringExpenseScreen(
                 onExpandedChange = { intervalExpanded = it },
             ) {
                 OutlinedTextField(
-                    value = interval.displayName,
+                    value = recurrenceInterval.displayName,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Frequency") },
@@ -199,7 +200,7 @@ fun AddEditRecurringExpenseScreen(
                         DropdownMenuItem(
                             text = { Text(item.displayName) },
                             onClick = {
-                                viewModel.interval.value = item
+                                viewModel.recurrenceInterval.value = item
                                 intervalExpanded = false
                             },
                         )
@@ -223,7 +224,7 @@ fun AddEditRecurringExpenseScreen(
                 ),
             ) {
                 Text(
-                    if (recurringExpenseId != null) "Update" else "Add Recurring Expense",
+                    if (recurringIncomeId != null) "Update" else "Add Recurring Income",
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
             }

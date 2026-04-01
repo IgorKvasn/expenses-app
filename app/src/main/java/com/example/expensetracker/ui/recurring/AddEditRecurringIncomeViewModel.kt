@@ -1,25 +1,30 @@
-package com.example.expensetracker.ui.income
+package com.example.expensetracker.ui.recurring
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.expensetracker.data.db.entity.IncomeEntity
 import com.example.expensetracker.data.repository.IncomeRepository
+import com.example.expensetracker.domain.model.Interval
+import com.example.expensetracker.domain.usecase.GenerateRecurringIncomeUseCase
 import com.example.expensetracker.ui.components.amountStringToCents
 import com.example.expensetracker.ui.components.centsToAmountString
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 
 @HiltViewModel
-class AddEditIncomeViewModel @Inject constructor(
+class AddEditRecurringIncomeViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
+    private val generateRecurringIncome: GenerateRecurringIncomeUseCase,
 ) : ViewModel() {
 
     val amount = MutableStateFlow("")
     val source = MutableStateFlow("")
-    val date = MutableStateFlow(LocalDate.now())
+    val recurrenceInterval = MutableStateFlow(Interval.MONTHLY)
+    val startDate = MutableStateFlow(LocalDate.now())
     val note = MutableStateFlow("")
 
     val amountError = MutableStateFlow<String?>(null)
@@ -33,7 +38,10 @@ class AddEditIncomeViewModel @Inject constructor(
             editingIncomeId = income.id
             amount.value = centsToAmountString(income.amountCents)
             source.value = income.source
-            date.value = income.date
+            recurrenceInterval.value = income.recurrenceInterval ?: Interval.MONTHLY
+            if (income.startDate != null) {
+                startDate.value = LocalDate.parse(income.startDate)
+            }
             note.value = income.note ?: ""
         }
     }
@@ -60,16 +68,18 @@ class AddEditIncomeViewModel @Inject constructor(
                 id = editingIncomeId ?: 0,
                 amountCents = cents,
                 source = source.value,
-                date = date.value,
+                date = startDate.value,
                 note = note.value.ifBlank { null },
-                isRecurring = false,
-                recurrenceInterval = null,
+                isRecurring = true,
+                recurrenceInterval = recurrenceInterval.value,
+                startDate = startDate.value.toString(),
             )
             if (editingIncomeId != null) {
                 incomeRepository.update(entity)
             } else {
                 incomeRepository.insert(entity)
             }
+            generateRecurringIncome(YearMonth.now())
             onComplete()
         }
     }

@@ -13,6 +13,7 @@ fun AmountInput(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "Amount (€)",
+    errorMessage: String? = null,
 ) {
     OutlinedTextField(
         value = value,
@@ -28,6 +29,8 @@ fun AmountInput(
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true,
+        isError = errorMessage != null,
+        supportingText = errorMessage?.let { { Text(it) } },
         modifier = modifier,
     )
 }

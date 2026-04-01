@@ -36,7 +36,7 @@ All paths relative to `src/main/java/com/example/expensetracker/`.
 - Modify: `domain/model/ExpenseFilter.kt:11`
 - Modify: `domain/model/IncomeFilter.kt:7-8`
 
-- [ ] **Step 1: Update ExpenseFilter**
+- [x] **Step 1: Update ExpenseFilter**
 
 In `ExpenseFilter.kt`, rename `noteSearch` to `search`:
 
@@ -52,7 +52,7 @@ data class ExpenseFilter(
 )
 ```
 
-- [ ] **Step 2: Update IncomeFilter**
+- [x] **Step 2: Update IncomeFilter**
 
 In `IncomeFilter.kt`, replace `sourceSearch` and `noteSearch` with single `search`:
 
@@ -68,7 +68,7 @@ data class IncomeFilter(
 )
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/main/java/com/example/expensetracker/domain/model/ExpenseFilter.kt \
@@ -83,7 +83,7 @@ git commit -m "refactor: rename noteSearch/sourceSearch to search in filter mode
 **Files:**
 - Modify: `data/db/dao/ExpenseDao.kt:13-35`
 
-- [ ] **Step 1: Update getFiltered query and parameter**
+- [x] **Step 1: Update getFiltered query and parameter**
 
 Replace the `getFiltered` method. The SQL adds an OR clause matching `CAST(amountCents AS TEXT)` against `:search`. Rename parameter from `noteSearch` to `search`:
 
@@ -114,7 +114,7 @@ fun getFiltered(
 ): Flow<List<ExpenseEntity>>
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add src/main/java/com/example/expensetracker/data/db/dao/ExpenseDao.kt
@@ -128,7 +128,7 @@ git commit -m "feat: expense search matches note and amountCents"
 **Files:**
 - Modify: `data/db/dao/IncomeDao.kt:13-37`
 
-- [ ] **Step 1: Update getFiltered query and parameters**
+- [x] **Step 1: Update getFiltered query and parameters**
 
 Replace the `getFiltered` method. Merge `sourceSearch` and `noteSearch` into single `search` param. The SQL matches `source`, `note`, and `CAST(amountCents AS TEXT)` with OR logic:
 
@@ -160,7 +160,7 @@ fun getFiltered(
 ): Flow<List<IncomeEntity>>
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add src/main/java/com/example/expensetracker/data/db/dao/IncomeDao.kt
@@ -175,7 +175,7 @@ git commit -m "feat: income search matches source, note, and amountCents"
 - Modify: `data/repository/ExpenseRepository.kt:16-25`
 - Modify: `data/repository/IncomeRepository.kt:22-32`
 
-- [ ] **Step 1: Update ExpenseRepository**
+- [x] **Step 1: Update ExpenseRepository**
 
 Change `noteSearch` to `search` in the `getFiltered` call:
 
@@ -192,7 +192,7 @@ fun getFiltered(filter: ExpenseFilter): Flow<List<ExpenseEntity>> =
     )
 ```
 
-- [ ] **Step 2: Update IncomeRepository**
+- [x] **Step 2: Update IncomeRepository**
 
 Replace `sourceSearch` and `noteSearch` with single `search` in the `getFiltered` call:
 
@@ -209,7 +209,7 @@ fun getFiltered(filter: IncomeFilter): Flow<List<IncomeEntity>> =
     )
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/main/java/com/example/expensetracker/data/repository/ExpenseRepository.kt \
@@ -224,7 +224,7 @@ git commit -m "refactor: pass unified search param through repositories"
 **Files:**
 - Modify: `ui/components/FilterBar.kt:41-74`
 
-- [ ] **Step 1: Rename parameter and update label**
+- [x] **Step 1: Rename parameter and update label**
 
 Rename `noteSearch`/`onNoteSearchChange` to `search`/`onSearchChange` and update the label text:
 
@@ -261,7 +261,7 @@ And update the OutlinedTextField inside (line 68-74):
             )
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add src/main/java/com/example/expensetracker/ui/components/FilterBar.kt
@@ -276,7 +276,7 @@ git commit -m "refactor: rename FilterBar noteSearch to search, update label"
 - Modify: `ui/expenses/ExpenseListViewModel.kt:35,44,49`
 - Modify: `ui/expenses/ExpenseListScreen.kt:75,129-130`
 
-- [ ] **Step 1: Update ExpenseListViewModel**
+- [x] **Step 1: Update ExpenseListViewModel**
 
 Rename `noteSearch` to `search` on line 35:
 
@@ -306,7 +306,7 @@ Update the combine block (line 44 and 49) — replace `noteSearch` with `search`
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 ```
 
-- [ ] **Step 2: Update ExpenseListScreen**
+- [x] **Step 2: Update ExpenseListScreen**
 
 Change line 75 to collect from `search`:
 
@@ -322,7 +322,7 @@ Update the FilterBar call (lines 128-130):
                 onSearchChange = { viewModel.search.value = it },
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/main/java/com/example/expensetracker/ui/expenses/ExpenseListViewModel.kt \
@@ -338,7 +338,7 @@ git commit -m "refactor: use unified search in expense list"
 - Modify: `ui/income/IncomeListViewModel.kt:28-29,38,41-44`
 - Modify: `ui/income/IncomeListScreen.kt:66,70,114-136`
 
-- [ ] **Step 1: Update IncomeListViewModel**
+- [x] **Step 1: Update IncomeListViewModel**
 
 Replace `sourceSearch` and `noteSearch` with single `search` on lines 28-29:
 
@@ -368,7 +368,7 @@ Update the combine block — change from 7 flows to 6 (remove `sourceSearch` and
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 ```
 
-- [ ] **Step 2: Update IncomeListScreen**
+- [x] **Step 2: Update IncomeListScreen**
 
 Replace lines 66 and 70 (remove `noteSearch` and `sourceSearch` collections, add `search`):
 
@@ -397,7 +397,7 @@ Update the FilterBar call (lines 114-136) — pass `search`/`onSearchChange` and
             )
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/main/java/com/example/expensetracker/ui/income/IncomeListViewModel.kt \
@@ -409,7 +409,7 @@ git commit -m "refactor: use unified search in income list"
 
 ### Task 8: Build verification
 
-- [ ] **Step 1: Build the project**
+- [x] **Step 1: Build the project**
 
 ```bash
 ./gradlew assembleDebug
@@ -417,4 +417,6 @@ git commit -m "refactor: use unified search in income list"
 
 Expected: BUILD SUCCESSFUL. If there are compilation errors, fix references to old field names (`noteSearch`, `sourceSearch`) that were missed.
 
-- [ ] **Step 2: Commit any fixes if needed**
+- [x] **Step 2: Commit any fixes if needed**
+
+> Note: SQL operator precedence fix was committed separately (parentheses around OR groups in DAO queries).

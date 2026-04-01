@@ -17,7 +17,8 @@ interface ExpenseDao {
           AND (:dateTo IS NULL OR date <= :dateTo)
           AND (:amountMin IS NULL OR amountCents >= :amountMin)
           AND (:amountMax IS NULL OR amountCents <= :amountMax)
-          AND (:noteSearch IS NULL OR note LIKE '%' || :noteSearch || '%' COLLATE NOCASE)
+          AND (:search IS NULL OR note LIKE '%' || :search || '%' COLLATE NOCASE
+               OR CAST(amountCents AS TEXT) LIKE '%' || :search || '%')
         ORDER BY
             CASE WHEN :sortOrder = 'DATE_DESC' THEN date END DESC,
             CASE WHEN :sortOrder = 'DATE_ASC' THEN date END ASC,
@@ -30,7 +31,7 @@ interface ExpenseDao {
         dateTo: String?,
         amountMin: Long?,
         amountMax: Long?,
-        noteSearch: String?,
+        search: String?,
         sortOrder: String,
     ): Flow<List<ExpenseEntity>>
 

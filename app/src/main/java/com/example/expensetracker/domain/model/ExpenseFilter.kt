@@ -8,6 +8,6 @@ data class ExpenseFilter(
     val dateTo: LocalDate? = null,
     val amountMinCents: Long? = null,
     val amountMaxCents: Long? = null,
-    val noteSearch: String? = null,
+    val search: String? = null,
     val sortOrder: SortOrder = SortOrder.DATE_DESC,
 )

@@ -32,7 +32,7 @@ class ExpenseListViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val selectedCategoryId = MutableStateFlow<Long?>(null)
-    val noteSearch = MutableStateFlow("")
+    val search = MutableStateFlow("")
     val amountMin = MutableStateFlow("")
     val amountMax = MutableStateFlow("")
     val sortOrder = MutableStateFlow(SortOrder.DATE_DESC)
@@ -41,12 +41,12 @@ class ExpenseListViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val expenses: StateFlow<List<ExpenseEntity>> = combine(
-        selectedCategoryId, noteSearch, amountMin, amountMax, sortOrder, dateFrom, dateTo,
+        selectedCategoryId, search, amountMin, amountMax, sortOrder, dateFrom, dateTo,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         ExpenseFilter(
             categoryId = values[0] as Long?,
-            noteSearch = (values[1] as String).ifBlank { null },
+            search = (values[1] as String).ifBlank { null },
             amountMinCents = amountStringToCents(values[2] as String),
             amountMaxCents = amountStringToCents(values[3] as String),
             sortOrder = values[4] as SortOrder,

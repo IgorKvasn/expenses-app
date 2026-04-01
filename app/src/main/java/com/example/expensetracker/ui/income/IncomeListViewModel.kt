@@ -25,8 +25,7 @@ class IncomeListViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
 ) : ViewModel() {
 
-    val sourceSearch = MutableStateFlow("")
-    val noteSearch = MutableStateFlow("")
+    val search = MutableStateFlow("")
     val amountMin = MutableStateFlow("")
     val amountMax = MutableStateFlow("")
     val sortOrder = MutableStateFlow(SortOrder.DATE_DESC)
@@ -35,17 +34,17 @@ class IncomeListViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val incomeItems: StateFlow<List<IncomeEntity>> = combine(
-        sourceSearch, noteSearch, amountMin, amountMax, sortOrder, dateFrom, dateTo,
+        search, amountMin, amountMax, sortOrder, dateFrom, dateTo,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         IncomeFilter(
-            sourceSearch = (values[0] as String).ifBlank { null },
-            noteSearch = (values[1] as String).ifBlank { null },
-            amountMinCents = amountStringToCents(values[2] as String),
-            amountMaxCents = amountStringToCents(values[3] as String),
-            sortOrder = values[4] as SortOrder,
-            dateFrom = values[5] as LocalDate?,
-            dateTo = values[6] as LocalDate?,
+            isRecurring = null,
+            search = (values[0] as String).ifBlank { null },
+            amountMinCents = amountStringToCents(values[1] as String),
+            amountMaxCents = amountStringToCents(values[2] as String),
+            sortOrder = values[3] as SortOrder,
+            dateFrom = values[4] as LocalDate?,
+            dateTo = values[5] as LocalDate?,
         )
     }.flatMapLatest { filter ->
         incomeRepository.getFiltered(filter)

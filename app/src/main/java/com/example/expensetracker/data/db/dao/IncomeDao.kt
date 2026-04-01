@@ -13,12 +13,13 @@ interface IncomeDao {
     @Query("""
         SELECT * FROM income
         WHERE (:isRecurring IS NULL OR isRecurring = :isRecurring)
-          AND (:sourceSearch IS NULL OR source LIKE '%' || :sourceSearch || '%' COLLATE NOCASE)
           AND (:dateFrom IS NULL OR date >= :dateFrom)
           AND (:dateTo IS NULL OR date <= :dateTo)
           AND (:amountMin IS NULL OR amountCents >= :amountMin)
           AND (:amountMax IS NULL OR amountCents <= :amountMax)
-          AND (:noteSearch IS NULL OR note LIKE '%' || :noteSearch || '%' COLLATE NOCASE)
+          AND (:search IS NULL OR source LIKE '%' || :search || '%' COLLATE NOCASE
+               OR note LIKE '%' || :search || '%' COLLATE NOCASE
+               OR CAST(amountCents AS TEXT) LIKE '%' || :search || '%')
         ORDER BY
             CASE WHEN :sortOrder = 'DATE_DESC' THEN date END DESC,
             CASE WHEN :sortOrder = 'DATE_ASC' THEN date END ASC,
@@ -27,12 +28,11 @@ interface IncomeDao {
     """)
     fun getFiltered(
         isRecurring: Boolean?,
-        sourceSearch: String?,
         dateFrom: String?,
         dateTo: String?,
         amountMin: Long?,
         amountMax: Long?,
-        noteSearch: String?,
+        search: String?,
         sortOrder: String,
     ): Flow<List<IncomeEntity>>
 

@@ -20,7 +20,7 @@ class ExpenseRepository @Inject constructor(
             dateTo = filter.dateTo?.toString(),
             amountMin = filter.amountMinCents,
             amountMax = filter.amountMaxCents,
-            noteSearch = filter.noteSearch,
+            search = filter.search,
             sortOrder = filter.sortOrder.name,
         )
 

@@ -39,8 +39,8 @@ import java.time.ZoneId
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterBar(
-    noteSearch: String,
-    onNoteSearchChange: (String) -> Unit,
+    search: String,
+    onSearchChange: (String) -> Unit,
     amountMin: String,
     onAmountMinChange: (String) -> Unit,
     amountMax: String,
@@ -66,9 +66,9 @@ fun FilterBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedTextField(
-                value = noteSearch,
-                onValueChange = onNoteSearchChange,
-                label = { Text("Search notes") },
+                value = search,
+                onValueChange = onSearchChange,
+                label = { Text("Search") },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
@@ -98,7 +98,7 @@ fun FilterBar(
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = dateFrom?.toString() ?: "",
+                        value = dateFrom?.let { DateFormatter.format(it) } ?: "",
                         onValueChange = {},
                         label = { Text("From date") },
                         readOnly = true,
@@ -106,7 +106,7 @@ fun FilterBar(
                         modifier = Modifier.weight(1f).clickable { showDateFromPicker = true },
                     )
                     OutlinedTextField(
-                        value = dateTo?.toString() ?: "",
+                        value = dateTo?.let { DateFormatter.format(it) } ?: "",
                         onValueChange = {},
                         label = { Text("To date") },
                         readOnly = true,

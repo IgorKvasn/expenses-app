@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.NoPhotography
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -86,6 +87,7 @@ fun AddEditExpenseScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showSuccessAnimation by remember { mutableStateOf(false) }
     var isScanning by remember { mutableStateOf(false) }
+    var cameraPermissionDenied by remember { mutableStateOf(false) }
 
     val amountFocusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { amountFocusRequester.requestFocus() }
@@ -139,6 +141,7 @@ fun AddEditExpenseScreen(
             photoUri = uri
             cameraLauncher.launch(uri)
         } else {
+            cameraPermissionDenied = true
             scope.launch {
                 snackbarHostState.showSnackbar("Camera permission is required to scan receipts")
             }
@@ -165,6 +168,18 @@ fun AddEditExpenseScreen(
                             modifier = Modifier.padding(12.dp),
                             strokeWidth = 2.dp,
                         )
+                    } else if (cameraPermissionDenied) {
+                        IconButton(onClick = {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Grant camera permission in Settings to scan receipts")
+                            }
+                        }) {
+                            Icon(
+                                Icons.Default.NoPhotography,
+                                contentDescription = "Camera permission required",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     } else {
                         IconButton(onClick = {
                             permissionLauncher.launch(Manifest.permission.CAMERA)

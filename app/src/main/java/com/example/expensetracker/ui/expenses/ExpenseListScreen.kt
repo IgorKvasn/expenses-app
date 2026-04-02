@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,7 +29,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -39,8 +37,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,9 +64,10 @@ import com.example.expensetracker.ui.theme.ExpenseRed
 fun ExpenseListScreen(
     onAddExpense: () -> Unit,
     onEditExpense: (Long) -> Unit,
-    onManageCategories: () -> Unit,
     viewModel: ExpenseListViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(Unit) { viewModel.resetMonth() }
+
     val expenses by viewModel.expenses.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val search by viewModel.search.collectAsStateWithLifecycle()
@@ -98,20 +95,6 @@ fun ExpenseListScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Expenses") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                actions = {
-                    IconButton(onClick = onManageCategories) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Manage categories")
-                    }
-                },
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddExpense,
@@ -123,8 +106,7 @@ fun ExpenseListScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            val dateFrom by viewModel.dateFrom.collectAsStateWithLifecycle()
-            val dateTo by viewModel.dateTo.collectAsStateWithLifecycle()
+            val selectedMonth by viewModel.selectedMonth.collectAsStateWithLifecycle()
 
             FilterBar(
                 search = search,
@@ -133,12 +115,11 @@ fun ExpenseListScreen(
                 onAmountMinChange = { viewModel.amountMin.value = it },
                 amountMax = amountMax,
                 onAmountMaxChange = { viewModel.amountMax.value = it },
-                dateFrom = dateFrom,
-                onDateFromChange = { viewModel.dateFrom.value = it },
-                dateTo = dateTo,
-                onDateToChange = { viewModel.dateTo.value = it },
+                selectedMonth = selectedMonth,
+                onSelectedMonthChange = { viewModel.selectedMonth.value = it },
                 sortOrder = sortOrder,
                 onSortOrderChange = { viewModel.sortOrder.value = it },
+                onClearFilters = { viewModel.clearFilters() },
                 extraFilters = {
                     var categoryMenuExpanded by remember { mutableStateOf(false) }
                     val selectedCategory = categories.find { it.id == selectedCategoryId }

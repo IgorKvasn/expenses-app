@@ -36,8 +36,6 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -82,28 +80,21 @@ fun ReportsScreen(
     var showDateToPicker by remember { mutableStateOf(false) }
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Reports") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                actions = {
-                    IconButton(onClick = { viewModel.exportToExcel(context) }) {
-                        Icon(Icons.Filled.FileDownload, contentDescription = "Export")
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    Scaffold { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                IconButton(onClick = { viewModel.exportToExcel(context) }) {
+                    Icon(Icons.Filled.FileDownload, contentDescription = "Export")
+                }
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

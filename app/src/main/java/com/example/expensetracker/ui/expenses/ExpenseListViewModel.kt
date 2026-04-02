@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
@@ -36,26 +35,39 @@ class ExpenseListViewModel @Inject constructor(
     val amountMin = MutableStateFlow("")
     val amountMax = MutableStateFlow("")
     val sortOrder = MutableStateFlow(SortOrder.DATE_DESC)
-    val dateFrom = MutableStateFlow<LocalDate?>(YearMonth.now().atDay(1))
-    val dateTo = MutableStateFlow<LocalDate?>(YearMonth.now().atEndOfMonth())
+    val selectedMonth = MutableStateFlow<YearMonth?>(YearMonth.now())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val expenses: StateFlow<List<ExpenseEntity>> = combine(
-        selectedCategoryId, search, amountMin, amountMax, sortOrder, dateFrom, dateTo,
+        selectedCategoryId, search, amountMin, amountMax, sortOrder, selectedMonth,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
+        val month = values[5] as YearMonth?
         ExpenseFilter(
             categoryId = values[0] as Long?,
             search = (values[1] as String).ifBlank { null },
             amountMinCents = amountStringToCents(values[2] as String),
             amountMaxCents = amountStringToCents(values[3] as String),
             sortOrder = values[4] as SortOrder,
-            dateFrom = values[5] as LocalDate?,
-            dateTo = values[6] as LocalDate?,
+            dateFrom = month?.atDay(1),
+            dateTo = month?.atEndOfMonth(),
         )
     }.flatMapLatest { filter ->
         expenseRepository.getFiltered(filter)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun resetMonth() {
+        selectedMonth.value = YearMonth.now()
+    }
+
+    fun clearFilters() {
+        selectedCategoryId.value = null
+        search.value = ""
+        amountMin.value = ""
+        amountMax.value = ""
+        sortOrder.value = SortOrder.DATE_DESC
+        selectedMonth.value = YearMonth.now()
+    }
 
     fun deleteExpense(expense: ExpenseEntity) {
         viewModelScope.launch {

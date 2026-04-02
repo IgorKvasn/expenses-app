@@ -5,6 +5,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
@@ -14,7 +16,13 @@ fun AmountInput(
     modifier: Modifier = Modifier,
     label: String = "Amount (€)",
     errorMessage: String? = null,
+    focusRequester: FocusRequester? = null,
 ) {
+    val focusModifier = if (focusRequester != null) {
+        modifier.focusRequester(focusRequester)
+    } else {
+        modifier
+    }
     OutlinedTextField(
         value = value,
         onValueChange = { newValue ->
@@ -31,7 +39,7 @@ fun AmountInput(
         singleLine = true,
         isError = errorMessage != null,
         supportingText = errorMessage?.let { { Text(it) } },
-        modifier = modifier,
+        modifier = focusModifier,
     )
 }
 

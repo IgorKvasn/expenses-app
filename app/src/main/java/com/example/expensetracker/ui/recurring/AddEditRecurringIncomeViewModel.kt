@@ -11,6 +11,7 @@ import com.example.expensetracker.ui.components.centsToAmountString
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -31,11 +32,13 @@ class AddEditRecurringIncomeViewModel @Inject constructor(
     val sourceError = MutableStateFlow<String?>(null)
 
     private var editingIncomeId: Long? = null
+    private var editingCreatedAt: Instant? = null
 
     fun loadIncome(id: Long) {
         viewModelScope.launch {
             val income = incomeRepository.getById(id) ?: return@launch
             editingIncomeId = income.id
+            editingCreatedAt = income.createdAt
             amount.value = centsToAmountString(income.amountCents)
             source.value = income.source
             recurrenceInterval.value = income.recurrenceInterval ?: Interval.MONTHLY
@@ -73,6 +76,7 @@ class AddEditRecurringIncomeViewModel @Inject constructor(
                 isRecurring = true,
                 recurrenceInterval = recurrenceInterval.value,
                 startDate = startDate.value.toString(),
+                createdAt = editingCreatedAt ?: Instant.now(),
             )
             if (editingIncomeId != null) {
                 incomeRepository.update(entity)

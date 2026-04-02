@@ -31,8 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +48,7 @@ import com.example.expensetracker.data.db.entity.IncomeEntity
 import com.example.expensetracker.data.db.entity.RecurringExpenseEntity
 import com.example.expensetracker.ui.components.CurrencyFormatter
 import com.example.expensetracker.ui.components.DateFormatter
+import androidx.compose.material3.HorizontalDivider
 import com.example.expensetracker.ui.theme.ExpenseRed
 import com.example.expensetracker.ui.theme.ExpenseRedDark
 import com.example.expensetracker.ui.theme.ExpenseRedDarkContainer
@@ -71,19 +70,11 @@ fun RecurringListScreen(
     val recurringExpenses by viewModel.recurringExpenses.collectAsStateWithLifecycle()
     val recurringIncome by viewModel.recurringIncome.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val summary by viewModel.summary.collectAsStateWithLifecycle()
     var showAddMenu by remember { mutableStateOf(false) }
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Recurring") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
-        },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
                 DropdownMenu(
@@ -148,6 +139,9 @@ fun RecurringListScreen(
             }
         } else {
             LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+                item {
+                    RecurringSummaryCard(summary = summary, isDark = isDark)
+                }
                 if (recurringExpenses.isNotEmpty()) {
                     item {
                         Text(
@@ -289,6 +283,71 @@ fun RecurringListScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecurringSummaryCard(summary: RecurringSummary, isDark: Boolean) {
+    val netColor = when {
+        summary.monthlyNetCents > 0 -> if (isDark) IncomeGreenDark else IncomeGreen
+        summary.monthlyNetCents < 0 -> if (isDark) ExpenseRedDark else ExpenseRed
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Monthly Summary",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Income", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    CurrencyFormatter.format(summary.monthlyIncomeCents),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) IncomeGreenDark else IncomeGreen,
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Expenses", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "-${CurrencyFormatter.format(summary.monthlyExpenseCents)}",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) ExpenseRedDark else ExpenseRed,
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Net", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    CurrencyFormatter.format(summary.monthlyNetCents),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = netColor,
+                )
             }
         }
     }

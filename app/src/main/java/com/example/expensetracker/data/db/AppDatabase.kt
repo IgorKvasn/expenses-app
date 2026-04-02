@@ -25,7 +25,7 @@ import com.example.expensetracker.data.db.entity.RecurringIncomeGenerationEntity
         RecurringExpenseGenerationEntity::class,
         RecurringIncomeGenerationEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

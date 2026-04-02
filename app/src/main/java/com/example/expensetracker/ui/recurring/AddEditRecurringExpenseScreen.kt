@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -69,6 +70,9 @@ fun AddEditRecurringExpenseScreen(
 
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+
+    val amountFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { amountFocusRequester.requestFocus() }
 
     if (showDeleteConfirmation) {
         AlertDialog(
@@ -148,6 +152,7 @@ fun AddEditRecurringExpenseScreen(
                 },
                 errorMessage = amountError,
                 modifier = Modifier.fillMaxWidth(),
+                focusRequester = amountFocusRequester,
             )
             Spacer(modifier = Modifier.height(12.dp))
             CategoryPicker(

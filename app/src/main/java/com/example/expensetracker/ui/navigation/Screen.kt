@@ -5,6 +5,7 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String) {
@@ -37,6 +38,16 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(Screen.ExpenseList, "Expenses", Icons.Filled.AccountBalanceWallet),
     BottomNavItem(Screen.IncomeList, "Income", Icons.Filled.AttachMoney),
-    BottomNavItem(Screen.RecurringList, "Recurring", Icons.Filled.Repeat),
-    BottomNavItem(Screen.Reports, "Reports", Icons.Filled.Assessment),
+)
+
+data class DrawerNavItem(
+    val screen: Screen,
+    val label: String,
+    val icon: ImageVector,
+)
+
+val drawerNavItems = listOf(
+    DrawerNavItem(Screen.RecurringList, "Recurring", Icons.Filled.Repeat),
+    DrawerNavItem(Screen.Reports, "Reports", Icons.Filled.Assessment),
+    DrawerNavItem(Screen.Settings, "Settings", Icons.Filled.Settings),
 )

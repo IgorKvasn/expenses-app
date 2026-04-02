@@ -1,28 +1,25 @@
 package com.example.expensetracker.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,13 +27,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.expensetracker.domain.model.SortOrder
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterBar(
     search: String,
@@ -45,21 +43,29 @@ fun FilterBar(
     onAmountMinChange: (String) -> Unit,
     amountMax: String,
     onAmountMaxChange: (String) -> Unit,
-    dateFrom: LocalDate?,
-    onDateFromChange: (LocalDate?) -> Unit,
-    dateTo: LocalDate?,
-    onDateToChange: (LocalDate?) -> Unit,
+    selectedMonth: YearMonth?,
+    onSelectedMonthChange: (YearMonth?) -> Unit,
     sortOrder: SortOrder,
     onSortOrderChange: (SortOrder) -> Unit,
+    onClearFilters: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     extraFilters: @Composable () -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
-    var showDateFromPicker by remember { mutableStateOf(false) }
-    var showDateToPicker by remember { mutableStateOf(false) }
+
+    val hasActiveFilters = search.isNotEmpty() || amountMin.isNotEmpty() || amountMax.isNotEmpty() ||
+        sortOrder != SortOrder.DATE_DESC
 
     Column(modifier = modifier.fillMaxWidth()) {
+        MonthPicker(
+            selectedMonth = selectedMonth,
+            onSelectedMonthChange = onSelectedMonthChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        )
+
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -72,6 +78,11 @@ fun FilterBar(
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
+            if (hasActiveFilters && onClearFilters != null) {
+                IconButton(onClick = onClearFilters) {
+                    Icon(Icons.Filled.Clear, contentDescription = "Clear filters")
+                }
+            }
             IconButton(onClick = { expanded = !expanded }) {
                 Icon(Icons.Filled.FilterList, contentDescription = "Filters")
             }
@@ -97,25 +108,6 @@ fun FilterBar(
         AnimatedVisibility(visible = expanded) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = dateFrom?.let { DateFormatter.format(it) } ?: "",
-                        onValueChange = {},
-                        label = { Text("From date") },
-                        readOnly = true,
-                        singleLine = true,
-                        modifier = Modifier.weight(1f).clickable { showDateFromPicker = true },
-                    )
-                    OutlinedTextField(
-                        value = dateTo?.let { DateFormatter.format(it) } ?: "",
-                        onValueChange = {},
-                        label = { Text("To date") },
-                        readOnly = true,
-                        singleLine = true,
-                        modifier = Modifier.weight(1f).clickable { showDateToPicker = true },
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AmountInput(
                         value = amountMin,
                         onValueChange = onAmountMinChange,
@@ -133,45 +125,51 @@ fun FilterBar(
             }
         }
     }
+}
 
-    if (showDateFromPicker) {
-        val state = rememberDatePickerState(
-            initialSelectedDateMillis = dateFrom?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli(),
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDateFromPicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    state.selectedDateMillis?.let { millis ->
-                        onDateFromChange(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate())
-                    }
-                    showDateFromPicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDateFromPicker = false }) { Text("Cancel") }
-            },
-        ) { DatePicker(state = state) }
-    }
+private val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())
 
-    if (showDateToPicker) {
-        val state = rememberDatePickerState(
-            initialSelectedDateMillis = dateTo?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli(),
+@Composable
+private fun MonthPicker(
+    selectedMonth: YearMonth?,
+    onSelectedMonthChange: (YearMonth?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (selectedMonth != null) {
+            IconButton(onClick = { onSelectedMonthChange(selectedMonth.minusMonths(1)) }) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous month")
+            }
+        }
+
+        Text(
+            text = selectedMonth?.format(monthYearFormatter) ?: "All months",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f),
         )
-        DatePickerDialog(
-            onDismissRequest = { showDateToPicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    state.selectedDateMillis?.let { millis ->
-                        onDateToChange(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate())
-                    }
-                    showDateToPicker = false
-                }) { Text("OK") }
+
+        if (selectedMonth != null) {
+            IconButton(onClick = { onSelectedMonthChange(selectedMonth.plusMonths(1)) }) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month")
+            }
+        }
+
+        TextButton(
+            onClick = {
+                if (selectedMonth != null) {
+                    onSelectedMonthChange(null)
+                } else {
+                    onSelectedMonthChange(YearMonth.now())
+                }
             },
-            dismissButton = {
-                TextButton(onClick = { showDateToPicker = false }) { Text("Cancel") }
-            },
-        ) { DatePicker(state = state) }
+        ) {
+            Text(if (selectedMonth != null) "All" else "Current")
+        }
     }
 }
 

@@ -143,13 +143,14 @@ private fun CategoryEntity.toExport() = ExportCategory(
 private fun ExpenseEntity.toExport() = ExportExpense(
     id = id, amountCents = amountCents, categoryId = categoryId,
     date = date.toString(), note = note, recurringExpenseId = recurringExpenseId,
+    createdAt = createdAt.toString(),
 )
 
 private fun IncomeEntity.toExport() = ExportIncome(
     id = id, amountCents = amountCents, source = source,
     date = date.toString(), note = note, isRecurring = isRecurring,
     recurrenceInterval = recurrenceInterval?.name, startDate = startDate,
-    recurringIncomeId = recurringIncomeId,
+    recurringIncomeId = recurringIncomeId, createdAt = createdAt.toString(),
 )
 
 private fun RecurringExpenseEntity.toExport() = ExportRecurringExpense(
@@ -174,6 +175,7 @@ private fun ExportCategory.toEntity() = CategoryEntity(
 private fun ExportExpense.toEntity() = ExpenseEntity(
     id = id, amountCents = amountCents, categoryId = categoryId,
     date = LocalDate.parse(date), note = note, recurringExpenseId = recurringExpenseId,
+    createdAt = createdAt?.let { Instant.parse(it) } ?: Instant.now(),
 )
 
 private fun ExportIncome.toEntity() = IncomeEntity(
@@ -181,6 +183,7 @@ private fun ExportIncome.toEntity() = IncomeEntity(
     date = LocalDate.parse(date), note = note, isRecurring = isRecurring,
     recurrenceInterval = recurrenceInterval?.let { Interval.valueOf(it) },
     startDate = startDate, recurringIncomeId = recurringIncomeId,
+    createdAt = createdAt?.let { Instant.parse(it) } ?: Instant.now(),
 )
 
 private fun ExportRecurringExpense.toEntity() = RecurringExpenseEntity(

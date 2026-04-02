@@ -33,10 +33,9 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +61,8 @@ fun IncomeListScreen(
     onEditIncome: (Long) -> Unit,
     viewModel: IncomeListViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(Unit) { viewModel.resetMonth() }
+
     val incomeItems by viewModel.incomeItems.collectAsStateWithLifecycle()
     val search by viewModel.search.collectAsStateWithLifecycle()
     val amountMin by viewModel.amountMin.collectAsStateWithLifecycle()
@@ -87,15 +88,6 @@ fun IncomeListScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Income") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddIncome,
@@ -107,8 +99,7 @@ fun IncomeListScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            val dateFrom by viewModel.dateFrom.collectAsStateWithLifecycle()
-            val dateTo by viewModel.dateTo.collectAsStateWithLifecycle()
+            val selectedMonth by viewModel.selectedMonth.collectAsStateWithLifecycle()
 
             FilterBar(
                 search = search,
@@ -117,12 +108,11 @@ fun IncomeListScreen(
                 onAmountMinChange = { viewModel.amountMin.value = it },
                 amountMax = amountMax,
                 onAmountMaxChange = { viewModel.amountMax.value = it },
-                dateFrom = dateFrom,
-                onDateFromChange = { viewModel.dateFrom.value = it },
-                dateTo = dateTo,
-                onDateToChange = { viewModel.dateTo.value = it },
+                selectedMonth = selectedMonth,
+                onSelectedMonthChange = { viewModel.selectedMonth.value = it },
                 sortOrder = sortOrder,
                 onSortOrderChange = { viewModel.sortOrder.value = it },
+                onClearFilters = { viewModel.clearFilters() },
             )
 
             if (incomeItems.isEmpty()) {

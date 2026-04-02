@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.time.Instant
 import java.time.LocalDate
 
 @Entity(
@@ -26,6 +27,7 @@ import java.time.LocalDate
         Index(value = ["categoryId"]),
         Index(value = ["recurringExpenseId"]),
         Index(value = ["date"]),
+        Index(value = ["createdAt"]),
     ],
 )
 data class ExpenseEntity(
@@ -35,4 +37,5 @@ data class ExpenseEntity(
     val date: LocalDate,
     val note: String? = null,
     val recurringExpenseId: Long? = null,
+    val createdAt: Instant = Instant.now(),
 )

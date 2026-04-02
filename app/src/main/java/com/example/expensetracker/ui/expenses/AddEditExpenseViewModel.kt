@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -35,11 +36,13 @@ class AddEditExpenseViewModel @Inject constructor(
     val categoryError = MutableStateFlow<String?>(null)
 
     private var editingExpenseId: Long? = null
+    private var editingCreatedAt: Instant? = null
 
     fun loadExpense(id: Long) {
         viewModelScope.launch {
             val expense = expenseRepository.getById(id) ?: return@launch
             editingExpenseId = expense.id
+            editingCreatedAt = expense.createdAt
             amount.value = centsToAmountString(expense.amountCents)
             categoryId.value = expense.categoryId
             date.value = expense.date
@@ -71,6 +74,7 @@ class AddEditExpenseViewModel @Inject constructor(
                 categoryId = catId,
                 date = date.value,
                 note = note.value.ifBlank { null },
+                createdAt = editingCreatedAt ?: Instant.now(),
             )
             if (editingExpenseId != null) {
                 expenseRepository.update(entity)

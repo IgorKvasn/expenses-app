@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
@@ -29,26 +28,38 @@ class IncomeListViewModel @Inject constructor(
     val amountMin = MutableStateFlow("")
     val amountMax = MutableStateFlow("")
     val sortOrder = MutableStateFlow(SortOrder.DATE_DESC)
-    val dateFrom = MutableStateFlow<LocalDate?>(YearMonth.now().atDay(1))
-    val dateTo = MutableStateFlow<LocalDate?>(YearMonth.now().atEndOfMonth())
+    val selectedMonth = MutableStateFlow<YearMonth?>(YearMonth.now())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val incomeItems: StateFlow<List<IncomeEntity>> = combine(
-        search, amountMin, amountMax, sortOrder, dateFrom, dateTo,
+        search, amountMin, amountMax, sortOrder, selectedMonth,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
+        val month = values[4] as YearMonth?
         IncomeFilter(
             isRecurring = null,
             search = (values[0] as String).ifBlank { null },
             amountMinCents = amountStringToCents(values[1] as String),
             amountMaxCents = amountStringToCents(values[2] as String),
             sortOrder = values[3] as SortOrder,
-            dateFrom = values[4] as LocalDate?,
-            dateTo = values[5] as LocalDate?,
+            dateFrom = month?.atDay(1),
+            dateTo = month?.atEndOfMonth(),
         )
     }.flatMapLatest { filter ->
         incomeRepository.getFiltered(filter)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun resetMonth() {
+        selectedMonth.value = YearMonth.now()
+    }
+
+    fun clearFilters() {
+        search.value = ""
+        amountMin.value = ""
+        amountMax.value = ""
+        sortOrder.value = SortOrder.DATE_DESC
+        selectedMonth.value = YearMonth.now()
+    }
 
     fun deleteIncome(income: IncomeEntity) {
         viewModelScope.launch { incomeRepository.delete(income) }

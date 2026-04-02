@@ -4,11 +4,12 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.expensetracker.domain.model.Interval
+import java.time.Instant
 import java.time.LocalDate
 
 @Entity(
     tableName = "income",
-    indices = [Index(value = ["date"])],
+    indices = [Index(value = ["date"]), Index(value = ["createdAt"])],
 )
 data class IncomeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -20,4 +21,5 @@ data class IncomeEntity(
     val recurrenceInterval: Interval? = null,
     val startDate: String? = null,
     val recurringIncomeId: Long? = null,
+    val createdAt: Instant = Instant.now(),
 )

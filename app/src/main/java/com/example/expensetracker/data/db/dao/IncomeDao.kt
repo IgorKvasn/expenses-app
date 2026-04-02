@@ -21,8 +21,8 @@ interface IncomeDao {
                OR note LIKE '%' || :search || '%' COLLATE NOCASE
                OR CAST(amountCents AS TEXT) LIKE '%' || :search || '%'))
         ORDER BY
-            CASE WHEN :sortOrder = 'DATE_DESC' THEN date END DESC,
-            CASE WHEN :sortOrder = 'DATE_ASC' THEN date END ASC,
+            CASE WHEN :sortOrder = 'DATE_DESC' THEN createdAt END DESC,
+            CASE WHEN :sortOrder = 'DATE_ASC' THEN createdAt END ASC,
             CASE WHEN :sortOrder = 'AMOUNT_DESC' THEN amountCents END DESC,
             CASE WHEN :sortOrder = 'AMOUNT_ASC' THEN amountCents END ASC
     """)

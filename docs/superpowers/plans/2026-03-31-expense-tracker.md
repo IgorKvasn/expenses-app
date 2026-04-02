@@ -4,7 +4,7 @@
 
 **Goal:** Build an Android expense tracker app with expense/income management, recurring items, visual reports, and Excel export.
 
-**Architecture:** Single-module MVVM with Kotlin + Jetpack Compose + Material 3. Room for persistence, Hilt for DI, Vico for charts, Apache POI for .xlsx export. Bottom navigation with 4 tabs: Expenses (default), Income, Recurring, Reports.
+**Architecture:** Single-module MVVM with Kotlin + Jetpack Compose + Material 3. Room for persistence, Hilt for DI, Vico for charts, Apache POI for .xlsx export. Bottom navigation with 2 tabs: Expenses (default), Income. Burger menu (ModalNavigationDrawer) for: Recurring, Reports, Settings. The NavGraph provides a centralized TopAppBar with burger menu icon for all main screens; individual main screens do not define their own TopAppBar. Drawer gestures are enabled globally. Sub-screens (AddEdit*, CategoryManagement) retain their own TopAppBar with back navigation.
 
 **Tech Stack:** Kotlin, Jetpack Compose, Material 3, Room (SQLite), Hilt, Vico, Apache POI, Compose Navigation, java.time, min SDK 35
 
@@ -62,8 +62,8 @@ app/
 │       ├── ui/
 │       │   ├── navigation/
 │       │   │   ├── Screen.kt                 # Sealed class for nav routes
-│       │   │   ├── BottomNavBar.kt           # Bottom navigation composable
-│       │   │   └── NavGraph.kt               # Navigation graph setup
+│       │   │   ├── BottomNavBar.kt           # Bottom navigation (Expenses, Income)
+│       │   │   └── NavGraph.kt               # Navigation graph with drawer menu + centralized TopAppBar for main screens
 │       │   ├── theme/
 │       │   │   ├── Theme.kt
 │       │   │   ├── Color.kt
@@ -569,6 +569,7 @@ import java.time.LocalDate
         Index(value = ["categoryId"]),
         Index(value = ["recurringExpenseId"]),
         Index(value = ["date"]),
+        Index(value = ["createdAt"]),
     ],
 )
 data class ExpenseEntity(
@@ -578,6 +579,7 @@ data class ExpenseEntity(
     val date: LocalDate,
     val note: String? = null,
     val recurringExpenseId: Long? = null,
+    val createdAt: Instant = Instant.now(),
 )
 ```
 
@@ -590,11 +592,12 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.expensetracker.domain.model.Interval
+import java.time.Instant
 import java.time.LocalDate
 
 @Entity(
     tableName = "income",
-    indices = [Index(value = ["date"])],
+    indices = [Index(value = ["date"]), Index(value = ["createdAt"])],
 )
 data class IncomeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -605,6 +608,7 @@ data class IncomeEntity(
     val isRecurring: Boolean = false,
     val recurrenceInterval: Interval? = null,
     val startDate: String? = null,
+    val createdAt: Instant = Instant.now(),
 )
 ```
 
@@ -784,8 +788,8 @@ interface ExpenseDao {
           AND (:amountMax IS NULL OR amountCents <= :amountMax)
           AND (:noteSearch IS NULL OR note LIKE '%' || :noteSearch || '%' COLLATE NOCASE)
         ORDER BY
-            CASE WHEN :sortOrder = 'DATE_DESC' THEN date END DESC,
-            CASE WHEN :sortOrder = 'DATE_ASC' THEN date END ASC,
+            CASE WHEN :sortOrder = 'DATE_DESC' THEN createdAt END DESC,
+            CASE WHEN :sortOrder = 'DATE_ASC' THEN createdAt END ASC,
             CASE WHEN :sortOrder = 'AMOUNT_DESC' THEN amountCents END DESC,
             CASE WHEN :sortOrder = 'AMOUNT_ASC' THEN amountCents END ASC
     """)
@@ -861,8 +865,8 @@ interface IncomeDao {
           AND (:amountMax IS NULL OR amountCents <= :amountMax)
           AND (:noteSearch IS NULL OR note LIKE '%' || :noteSearch || '%' COLLATE NOCASE)
         ORDER BY
-            CASE WHEN :sortOrder = 'DATE_DESC' THEN date END DESC,
-            CASE WHEN :sortOrder = 'DATE_ASC' THEN date END ASC,
+            CASE WHEN :sortOrder = 'DATE_DESC' THEN createdAt END DESC,
+            CASE WHEN :sortOrder = 'DATE_ASC' THEN createdAt END ASC,
             CASE WHEN :sortOrder = 'AMOUNT_DESC' THEN amountCents END DESC,
             CASE WHEN :sortOrder = 'AMOUNT_ASC' THEN amountCents END ASC
     """)
@@ -2125,6 +2129,7 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String) {
@@ -2145,6 +2150,7 @@ sealed class Screen(val route: String) {
     }
     data object Reports : Screen("reports")
     data object CategoryManagement : Screen("categories")
+    data object Settings : Screen("settings")
 }
 
 data class BottomNavItem(
@@ -2153,11 +2159,23 @@ data class BottomNavItem(
     val icon: ImageVector,
 )
 
+// Bottom nav: only Expenses and Income
 val bottomNavItems = listOf(
     BottomNavItem(Screen.ExpenseList, "Expenses", Icons.Filled.AccountBalanceWallet),
     BottomNavItem(Screen.IncomeList, "Income", Icons.Filled.AttachMoney),
-    BottomNavItem(Screen.RecurringList, "Recurring", Icons.Filled.Repeat),
-    BottomNavItem(Screen.Reports, "Reports", Icons.Filled.Assessment),
+)
+
+data class DrawerNavItem(
+    val screen: Screen,
+    val label: String,
+    val icon: ImageVector,
+)
+
+// Drawer (burger menu): Recurring, Reports, Settings
+val drawerNavItems = listOf(
+    DrawerNavItem(Screen.RecurringList, "Recurring", Icons.Filled.Repeat),
+    DrawerNavItem(Screen.Reports, "Reports", Icons.Filled.Assessment),
+    DrawerNavItem(Screen.Settings, "Settings", Icons.Filled.Settings),
 )
 ```
 
@@ -2201,18 +2219,37 @@ fun BottomNavBar(navController: NavController) {
 }
 ```
 
-- [ ] **Step 3: Create NavGraph (placeholder screens for now)**
+- [ ] **Step 3: Create NavGraph with drawer menu and top bar**
 
 ```kotlin
 package com.example.expensetracker.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.expensetracker.ui.expenses.ExpenseListScreen
@@ -2224,87 +2261,84 @@ import com.example.expensetracker.ui.recurring.AddEditRecurringExpenseScreen
 import com.example.expensetracker.ui.recurring.AddEditRecurringIncomeScreen
 import com.example.expensetracker.ui.reports.ReportsScreen
 import com.example.expensetracker.ui.categories.CategoryManagementScreen
+import com.example.expensetracker.ui.settings.SettingsScreen
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavGraph() {
+fun NavGraph(navigateToAddExpense: Boolean = false) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val mainScreenRoutes = bottomNavItems.map { it.screen.route } + drawerNavItems.map { it.screen.route }
+    val isMainScreen = currentRoute in mainScreenRoutes
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    Scaffold(
-        bottomBar = { BottomNavBar(navController) },
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.ExpenseList.route,
-            modifier = Modifier.padding(innerPadding),
-        ) {
-            composable(Screen.ExpenseList.route) {
-                ExpenseListScreen(
-                    onAddExpense = { navController.navigate(Screen.AddEditExpense.createRoute()) },
-                    onEditExpense = { id -> navController.navigate(Screen.AddEditExpense.createRoute(id)) },
-                    onManageCategories = { navController.navigate(Screen.CategoryManagement.route) },
+    // Top bar with hamburger icon shown on all main screens (bottom nav + drawer items).
+    // Drawer contains: Recurring, Reports, Settings.
+    // Bottom nav contains only: Expenses, Income.
+    // Drawer gestures enabled globally so swipe works on sub-screens too.
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = true,
+        drawerContent = {
+            ModalDrawerSheet {
+                Text(
+                    "Expense Tracker",
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
                 )
+                drawerNavItems.forEach { item ->
+                    NavigationDrawerItem(
+                        icon = { Icon(item.icon, contentDescription = item.label) },
+                        label = { Text(item.label) },
+                        selected = currentRoute == item.screen.route,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            if (currentRoute != item.screen.route) {
+                                navController.navigate(item.screen.route) {
+                                    popUpTo(Screen.ExpenseList.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    )
+                }
             }
-            composable(
-                route = Screen.AddEditExpense.route,
-                arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
-            ) { backStackEntry ->
-                val id = backStackEntry.arguments?.getLong("id")?.takeIf { it != -1L }
-                AddEditExpenseScreen(
-                    expenseId = id,
-                    onNavigateBack = { navController.popBackStack() },
-                )
-            }
-            composable(Screen.IncomeList.route) {
-                IncomeListScreen(
-                    onAddIncome = { navController.navigate(Screen.AddEditIncome.createRoute()) },
-                    onEditIncome = { id -> navController.navigate(Screen.AddEditIncome.createRoute(id)) },
-                )
-            }
-            composable(
-                route = Screen.AddEditIncome.route,
-                arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
-            ) { backStackEntry ->
-                val id = backStackEntry.arguments?.getLong("id")?.takeIf { it != -1L }
-                AddEditIncomeScreen(
-                    incomeId = id,
-                    onNavigateBack = { navController.popBackStack() },
-                )
-            }
-            composable(Screen.RecurringList.route) {
-                RecurringListScreen(
-                    onAddRecurring = { navController.navigate(Screen.AddEditRecurringExpense.createRoute()) },
-                    onEditRecurring = { id -> navController.navigate(Screen.AddEditRecurringExpense.createRoute(id)) },
-                    onAddRecurringIncome = { navController.navigate(Screen.AddEditRecurringIncome.createRoute()) },
-                    onEditRecurringIncome = { id -> navController.navigate(Screen.AddEditRecurringIncome.createRoute(id)) },
-                )
-            }
-            composable(
-                route = Screen.AddEditRecurringExpense.route,
-                arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
-            ) { backStackEntry ->
-                val id = backStackEntry.arguments?.getLong("id")?.takeIf { it != -1L }
-                AddEditRecurringExpenseScreen(
-                    recurringExpenseId = id,
-                    onNavigateBack = { navController.popBackStack() },
-                )
-            }
-            composable(
-                route = Screen.AddEditRecurringIncome.route,
-                arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
-            ) { backStackEntry ->
-                val id = backStackEntry.arguments?.getLong("id")?.takeIf { it != -1L }
-                AddEditRecurringIncomeScreen(
-                    recurringIncomeId = id,
-                    onNavigateBack = { navController.popBackStack() },
-                )
-            }
-            composable(Screen.Reports.route) {
-                ReportsScreen()
-            }
-            composable(Screen.CategoryManagement.route) {
-                CategoryManagementScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                )
+        },
+    ) {
+        Scaffold(
+            topBar = {
+                if (isMainScreen) {
+                    TopAppBar(
+                        title = {
+                            val label = bottomNavItems.find { it.screen.route == currentRoute }?.label
+                                ?: drawerNavItems.find { it.screen.route == currentRoute }?.label
+                                ?: ""
+                            Text(label)
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                            }
+                        },
+                    )
+                }
+            },
+            bottomBar = { BottomNavBar(navController) },
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = Screen.ExpenseList.route,
+                modifier = Modifier.padding(innerPadding),
+            ) {
+                // ... all composable routes
+                // Main screens (ExpenseList, IncomeList, RecurringList, Reports, Settings)
+                // have NO TopAppBar — the NavGraph Scaffold provides it.
+                // Sub-screens (AddEdit*, CategoryManagement) keep their own TopAppBar with back arrow.
             }
         }
     }
@@ -2672,7 +2706,6 @@ import com.example.expensetracker.ui.components.FilterBar
 fun ExpenseListScreen(
     onAddExpense: () -> Unit,
     onEditExpense: (Long) -> Unit,
-    onManageCategories: () -> Unit,
     viewModel: ExpenseListViewModel = hiltViewModel(),
 ) {
     val expenses by viewModel.expenses.collectAsStateWithLifecycle()
@@ -2683,17 +2716,8 @@ fun ExpenseListScreen(
     val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
 
+    // No TopAppBar here — NavGraph provides it with burger menu icon.
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Expenses") },
-                actions = {
-                    IconButton(onClick = onManageCategories) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Manage categories")
-                    }
-                },
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddExpense) {
                 Icon(Icons.Filled.Add, contentDescription = "Add expense")
@@ -3348,8 +3372,8 @@ fun IncomeListScreen(
     val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
     val sourceSearch by viewModel.sourceSearch.collectAsStateWithLifecycle()
 
+    // No TopAppBar here — NavGraph provides it with burger menu icon.
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Income") }) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddIncome) {
                 Icon(Icons.Filled.Add, contentDescription = "Add income")
@@ -3725,9 +3749,9 @@ git commit -m "feat: add income list and add/edit screens for one-time income"
 - Create: `app/src/main/java/com/example/expensetracker/ui/recurring/AddEditRecurringIncomeViewModel.kt`
 - Create: `app/src/main/java/com/example/expensetracker/ui/recurring/AddEditRecurringIncomeScreen.kt`
 
-- [ ] **Step 1: Create RecurringListViewModel**
+- [x] **Step 1: Create RecurringListViewModel**
 
-The ViewModel loads both recurring expenses and recurring income. Delete is handled in the AddEdit screens.
+The ViewModel loads both recurring expenses and recurring income. Delete is handled in the AddEdit screens. It also computes a `RecurringSummary` with monthly-normalized totals for expenses, income, and net, by dividing each item's amount by its interval's month count.
 
 ```kotlin
 package com.example.expensetracker.ui.recurring
@@ -3743,8 +3767,16 @@ import com.example.expensetracker.data.repository.RecurringExpenseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+
+data class RecurringSummary(
+    val monthlyExpenseCents: Long = 0,
+    val monthlyIncomeCents: Long = 0,
+) {
+    val monthlyNetCents: Long get() = monthlyIncomeCents - monthlyExpenseCents
+}
 
 @HiltViewModel
 class RecurringListViewModel @Inject constructor(
@@ -3763,12 +3795,22 @@ class RecurringListViewModel @Inject constructor(
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val summary: StateFlow<RecurringSummary> =
+        combine(recurringExpenses, recurringIncome) { expenses, income ->
+            RecurringSummary(
+                monthlyExpenseCents = expenses.sumOf { it.amountCents * 1L / it.interval.months },
+                monthlyIncomeCents = income.sumOf {
+                    it.amountCents * 1L / (it.recurrenceInterval?.months ?: 1)
+                },
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), RecurringSummary())
 }
 ```
 
-- [ ] **Step 2: Create RecurringListScreen**
+- [x] **Step 2: Create RecurringListScreen**
 
-The screen shows both recurring expenses and recurring income in sections. Expenses are shown with a red ArrowDownward icon, income with a green ArrowUpward icon. The FAB opens a dropdown to choose what to add. Delete is handled in the AddEdit detail screens (trash icon in TopAppBar).
+The screen shows a monthly summary card at the top (income, expenses, net — all normalized to monthly amounts), followed by recurring expenses and recurring income in sections. Expenses are shown with a red ArrowDownward icon, income with a green ArrowUpward icon. The FAB opens a dropdown to choose what to add. Delete is handled in the AddEdit detail screens (trash icon in TopAppBar). A `RecurringSummaryCard` composable displays the monthly totals with color-coded amounts and a divider above the net line.
 
 ```kotlin
 package com.example.expensetracker.ui.recurring
@@ -3825,10 +3867,12 @@ fun RecurringListScreen(
     val recurringExpenses by viewModel.recurringExpenses.collectAsStateWithLifecycle()
     val recurringIncome by viewModel.recurringIncome.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val summary by viewModel.summary.collectAsStateWithLifecycle()
     var showAddMenu by remember { mutableStateOf(false) }
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
+    // No TopAppBar here — NavGraph provides it with burger menu icon.
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Recurring") }) },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
                 DropdownMenu(
@@ -3872,6 +3916,9 @@ fun RecurringListScreen(
             }
         } else {
             LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+                item {
+                    RecurringSummaryCard(summary = summary, isDark = isDark)
+                }
                 if (recurringExpenses.isNotEmpty()) {
                     item {
                         Text(
@@ -3975,6 +4022,15 @@ fun RecurringListScreen(
             }
         }
     }
+}
+
+// RecurringSummaryCard: displays monthly income, expenses, and net at the top of the list.
+// Amounts are normalized to monthly equivalents (quarterly / 3, half-yearly / 6).
+// Net is colored green when positive, red when negative.
+@Composable
+private fun RecurringSummaryCard(summary: RecurringSummary, isDark: Boolean) {
+    // Card with rows: Income (green), Expenses (red, prefixed with -), divider, Net (colored by sign)
+    // Uses CurrencyFormatter.format() for all amounts
 }
 ```
 
@@ -4919,24 +4975,23 @@ fun ReportsScreen(
     var showDateFromPicker by remember { mutableStateOf(false) }
     var showDateToPicker by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Reports") },
-                actions = {
-                    IconButton(onClick = { viewModel.exportToExcel(context) }) {
-                        Icon(Icons.Filled.FileDownload, contentDescription = "Export")
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    // No TopAppBar here — NavGraph provides it with burger menu icon.
+    // Export button moved into content area.
+    Scaffold { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                IconButton(onClick = { viewModel.exportToExcel(context) }) {
+                    Icon(Icons.Filled.FileDownload, contentDescription = "Export")
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -5648,15 +5703,13 @@ Test cases:
 
 **Approach:**
 - Add `Screen.Settings` route to `Screen.kt`
-- Add gear icon (`Icons.Filled.Settings`) to the top app bar in `NavGraph.kt` scaffold, navigating to Settings screen
+- Settings is a drawer (burger menu) destination — no back arrow, NavGraph provides the TopAppBar with burger icon
 - Settings screen is a simple list with two items: "Export Data" and "Import Data"
 - SettingsViewModel handles export/import orchestration, delegates to `ExportImportJsonUseCase`
 
-- [ ] **Step 1: Add Settings route and top bar navigation**
+- [ ] **Step 1: Add Settings route and drawer navigation**
 
-Add `data object Settings : Screen("settings")` to `Screen.kt`.
-
-In `NavGraph.kt`, add a `Settings` icon button to the `TopAppBar` actions. Add the `composable("settings")` route to the `NavHost`.
+Add `data object Settings : Screen("settings")` to `Screen.kt`. Settings is already in `drawerNavItems` so it appears in the burger menu. Add the `composable("settings")` route to the `NavHost` in `NavGraph.kt`.
 
 - [ ] **Step 2: Create SettingsViewModel**
 
@@ -5694,7 +5747,7 @@ class SettingsViewModel @Inject constructor(
 - [ ] **Step 3: Create SettingsScreen**
 
 Material 3 screen with:
-- Top app bar with "Settings" title and back navigation
+- No TopAppBar (NavGraph provides it with burger menu icon and "Settings" title)
 - Two list items with icons:
   - **Export Data** (`Icons.Filled.Upload`): triggers export, launches share sheet on success
   - **Import Data** (`Icons.Filled.Download`): launches file picker (`ActivityResultContracts.OpenDocument`)

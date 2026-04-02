@@ -30,6 +30,7 @@ data class ExportExpense(
     val date: String,
     val note: String? = null,
     val recurringExpenseId: Long? = null,
+    val createdAt: String? = null,
 )
 
 @Serializable
@@ -43,6 +44,7 @@ data class ExportIncome(
     val recurrenceInterval: String? = null,
     val startDate: String? = null,
     val recurringIncomeId: Long? = null,
+    val createdAt: String? = null,
 )
 
 @Serializable

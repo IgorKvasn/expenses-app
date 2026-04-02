@@ -1,10 +1,13 @@
 package com.example.expensetracker.data.repository
 
+import android.content.Context
 import com.example.expensetracker.data.db.dao.IncomeDao
 import com.example.expensetracker.data.db.dao.RecurringIncomeGenerationDao
 import com.example.expensetracker.data.db.entity.IncomeEntity
 import com.example.expensetracker.data.db.entity.RecurringIncomeGenerationEntity
 import com.example.expensetracker.domain.model.IncomeFilter
+import com.example.expensetracker.ui.widget.WidgetUpdater
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import javax.inject.Inject
@@ -14,6 +17,7 @@ import javax.inject.Singleton
 class IncomeRepository @Inject constructor(
     private val incomeDao: IncomeDao,
     private val generationDao: RecurringIncomeGenerationDao,
+    @ApplicationContext private val context: Context,
 ) {
     fun getRecurring(): Flow<List<IncomeEntity>> = incomeDao.getRecurring()
 
@@ -35,11 +39,19 @@ class IncomeRepository @Inject constructor(
     suspend fun getTotalInRange(from: LocalDate, to: LocalDate): Long =
         incomeDao.getTotalInRange(from.toString(), to.toString()) ?: 0L
 
-    suspend fun insert(income: IncomeEntity): Long = incomeDao.insert(income)
+    suspend fun insert(income: IncomeEntity): Long {
+        return incomeDao.insert(income).also { WidgetUpdater.update(context) }
+    }
 
-    suspend fun update(income: IncomeEntity) = incomeDao.update(income)
+    suspend fun update(income: IncomeEntity) {
+        incomeDao.update(income)
+        WidgetUpdater.update(context)
+    }
 
-    suspend fun delete(income: IncomeEntity) = incomeDao.delete(income)
+    suspend fun delete(income: IncomeEntity) {
+        incomeDao.delete(income)
+        WidgetUpdater.update(context)
+    }
 
     suspend fun isGeneratedForMonth(recurringIncomeId: Long, month: String): Boolean =
         generationDao.existsForMonth(recurringIncomeId, month)

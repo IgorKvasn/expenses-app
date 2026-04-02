@@ -1,6 +1,8 @@
 package com.example.expensetracker.data.db
 
+import android.content.Context
 import androidx.room.Database
+import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.expensetracker.data.db.dao.CategoryDao
@@ -36,4 +38,26 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recurringExpenseDao(): RecurringExpenseDao
     abstract fun recurringExpenseGenerationDao(): RecurringExpenseGenerationDao
     abstract fun recurringIncomeGenerationDao(): RecurringIncomeGenerationDao
+
+    companion object {
+        @Volatile
+        private var instance: AppDatabase? = null
+
+        fun getInstance(context: Context): AppDatabase {
+            return instance ?: synchronized(this) {
+                instance ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "expense_tracker.db",
+                )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build()
+                    .also { instance = it }
+            }
+        }
+
+        fun setInstance(database: AppDatabase) {
+            instance = database
+        }
+    }
 }

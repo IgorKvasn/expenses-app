@@ -48,6 +48,7 @@ object DatabaseModule {
                 }
             })
             .build()
+            .also { AppDatabase.setInstance(it) }
     }
 
     @Provides

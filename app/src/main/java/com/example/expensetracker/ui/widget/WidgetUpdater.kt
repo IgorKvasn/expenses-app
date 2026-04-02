@@ -2,13 +2,13 @@ package com.example.expensetracker.ui.widget
 
 import android.content.Context
 import androidx.glance.appwidget.updateAll
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 object WidgetUpdater {
     suspend fun update(context: Context) {
-        withContext(Dispatchers.Main) {
+        try {
             MonthlySnapshotWidget().updateAll(context)
+        } catch (_: Exception) {
+            // Best-effort — widget update failure must not break data operations
         }
     }
 }

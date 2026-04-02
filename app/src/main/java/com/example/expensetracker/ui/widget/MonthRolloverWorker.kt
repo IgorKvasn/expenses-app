@@ -1,7 +1,6 @@
 package com.example.expensetracker.ui.widget
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 
@@ -11,7 +10,7 @@ class MonthRolloverWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        MonthlySnapshotWidget().updateAll(applicationContext)
+        WidgetUpdater.update(applicationContext)
         return Result.success()
     }
 }

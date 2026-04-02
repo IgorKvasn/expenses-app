@@ -4,7 +4,7 @@
 
 **Goal:** Add a 4×1 home screen widget showing current month's expenses, income, and balance.
 
-**Architecture:** Jetpack Glance widget reads from Room DAOs directly (no Hilt in widgets). Repositories trigger widget updates after data mutations. A daily WorkManager job handles month rollover.
+**Architecture:** Jetpack Glance widget uses `GlanceStateDefinition` (Preferences DataStore) to store snapshot data. `WidgetUpdater` reads from Room DAOs, writes to widget state via `updateAppWidgetState`, then calls `widget.update()` to trigger recomposition. This ensures data is always fresh — even when a Glance session is already running (~45s window), the `UpdateGlanceState` event recomposes with the latest preferences. Repositories trigger widget updates after data mutations. A daily WorkManager job handles month rollover.
 
 **Tech Stack:** Jetpack Glance 1.1.0, Glance Material 3 1.1.0, WorkManager 2.10.0, Room (existing)
 
@@ -238,6 +238,10 @@ git commit -m "feat: add widget XML metadata and string resources"
 **Files:**
 - Create: `app/src/main/java/com/example/expensetracker/ui/widget/MonthlySnapshotWidget.kt`
 
+**Important:** The widget uses Glance's `GlanceStateDefinition` (Preferences DataStore) to store and read data. Data is read from `currentState<Preferences>()` inside `provideContent {}`, NOT from the database directly in `provideGlance()`. This is critical because Glance sessions stay alive for ~45 seconds — when `update()` is called on a running session, it sends an `UpdateGlanceState` event that triggers recomposition but does NOT re-run `provideGlance()`. Only data read from `currentState()` inside `provideContent {}` is refreshed on recomposition.
+
+A top-level `updateWidgetState()` function reads current month totals from Room and writes them to the widget's Preferences DataStore via `updateAppWidgetState()`. This is called by both `provideGlance()` (initial render) and `WidgetUpdater` (data change updates).
+
 - [ ] **Step 1: Create the MonthlySnapshotWidget class**
 
 Create `app/src/main/java/com/example/expensetracker/ui/widget/MonthlySnapshotWidget.kt`:
@@ -251,6 +255,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -259,8 +265,11 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.color.ColorProviders
+import androidx.glance.color.DayNightColorProvider
+import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
@@ -272,7 +281,6 @@ import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.example.expensetracker.MainActivity
 import com.example.expensetracker.data.db.AppDatabase
 import com.example.expensetracker.ui.components.CurrencyFormatter
@@ -298,6 +306,11 @@ import java.util.Locale
 class MonthlySnapshotWidget : GlanceAppWidget() {
 
     companion object {
+        val KEY_EXPENSE_TOTAL = longPreferencesKey("expense_total")
+        val KEY_INCOME_TOTAL = longPreferencesKey("income_total")
+        val KEY_BALANCE = longPreferencesKey("balance")
+        val KEY_MONTH_LABEL = stringPreferencesKey("month_label")
+
         private val colors = ColorProviders(
             light = lightColorScheme(
                 surface = SurfaceContainerLight,
@@ -317,20 +330,15 @@ class MonthlySnapshotWidget : GlanceAppWidget() {
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val today = LocalDate.now()
-        val yearMonth = YearMonth.from(today)
-        val firstDay = yearMonth.atDay(1).toString()
-        val lastDay = yearMonth.atEndOfMonth().toString()
-
-        val database = AppDatabase.getInstance(context)
-        val expenseTotal = database.expenseDao().getTotalInRange(firstDay, lastDay) ?: 0L
-        val incomeTotal = database.incomeDao().getTotalInRange(firstDay, lastDay) ?: 0L
-        val balance = incomeTotal - expenseTotal
-
-        val monthLabel = yearMonth.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault()) +
-            " " + yearMonth.year
+        updateWidgetState(context, id)
 
         provideContent {
+            val prefs = currentState<androidx.datastore.preferences.core.Preferences>()
+            val expenseTotal = prefs[KEY_EXPENSE_TOTAL] ?: 0L
+            val incomeTotal = prefs[KEY_INCOME_TOTAL] ?: 0L
+            val balance = prefs[KEY_BALANCE] ?: 0L
+            val monthLabel = prefs[KEY_MONTH_LABEL] ?: ""
+
             GlanceTheme(colors = colors) {
                 WidgetContent(
                     monthLabel = monthLabel,
@@ -372,7 +380,7 @@ private fun WidgetContent(
             Text(
                 text = CurrencyFormatter.format(expenseTotal),
                 style = TextStyle(
-                    color = ColorProvider(ExpenseRed, ExpenseRedDark),
+                    color = DayNightColorProvider(ExpenseRed, ExpenseRedDark),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                 ),
@@ -381,7 +389,7 @@ private fun WidgetContent(
             Text(
                 text = CurrencyFormatter.format(incomeTotal),
                 style = TextStyle(
-                    color = ColorProvider(IncomeGreen, IncomeGreenDark),
+                    color = DayNightColorProvider(IncomeGreen, IncomeGreenDark),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                 ),
@@ -391,9 +399,9 @@ private fun WidgetContent(
                 text = formatBalance(balance),
                 style = TextStyle(
                     color = if (balance >= 0) {
-                        ColorProvider(IncomeGreen, IncomeGreenDark)
+                        DayNightColorProvider(IncomeGreen, IncomeGreenDark)
                     } else {
-                        ColorProvider(ExpenseRed, ExpenseRedDark)
+                        DayNightColorProvider(ExpenseRed, ExpenseRedDark)
                     },
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
@@ -406,6 +414,26 @@ private fun WidgetContent(
 private fun formatBalance(balanceCents: Long): String {
     val prefix = if (balanceCents >= 0) "+" else ""
     return prefix + CurrencyFormatter.format(balanceCents)
+}
+
+suspend fun updateWidgetState(context: Context, glanceId: GlanceId) {
+    val yearMonth = YearMonth.from(LocalDate.now())
+    val firstDay = yearMonth.atDay(1).toString()
+    val lastDay = yearMonth.atEndOfMonth().toString()
+
+    val database = AppDatabase.getInstance(context)
+    val expenseTotal = database.expenseDao().getTotalInRange(firstDay, lastDay) ?: 0L
+    val incomeTotal = database.incomeDao().getTotalInRange(firstDay, lastDay) ?: 0L
+    val balance = incomeTotal - expenseTotal
+    val monthLabel = yearMonth.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault()) +
+        " " + yearMonth.year
+
+    updateAppWidgetState(context, glanceId) { prefs ->
+        prefs[MonthlySnapshotWidget.KEY_EXPENSE_TOTAL] = expenseTotal
+        prefs[MonthlySnapshotWidget.KEY_INCOME_TOTAL] = incomeTotal
+        prefs[MonthlySnapshotWidget.KEY_BALANCE] = balance
+        prefs[MonthlySnapshotWidget.KEY_MONTH_LABEL] = monthLabel
+    }
 }
 
 class MonthlySnapshotWidgetReceiver : GlanceAppWidgetReceiver() {
@@ -422,7 +450,7 @@ Expected: BUILD SUCCESSFUL
 
 ```bash
 git add app/src/main/java/com/example/expensetracker/ui/widget/MonthlySnapshotWidget.kt
-git commit -m "feat: create MonthlySnapshotWidget with Glance"
+git commit -m "feat: create MonthlySnapshotWidget with Glance state-based updates"
 ```
 
 ---
@@ -432,6 +460,8 @@ git commit -m "feat: create MonthlySnapshotWidget with Glance"
 **Files:**
 - Create: `app/src/main/java/com/example/expensetracker/ui/widget/WidgetUpdater.kt`
 
+The `WidgetUpdater` iterates over all placed widget instances via `GlanceAppWidgetManager`, writes fresh data to each widget's Preferences DataStore via `updateWidgetState()`, then calls `widget.update()` to trigger recomposition. This two-step approach (write state, then update) ensures the widget always reads current data — even when a Glance session is already running and `provideGlance()` is not re-invoked.
+
 - [ ] **Step 1: Create WidgetUpdater**
 
 Create `app/src/main/java/com/example/expensetracker/ui/widget/WidgetUpdater.kt`:
@@ -440,13 +470,23 @@ Create `app/src/main/java/com/example/expensetracker/ui/widget/WidgetUpdater.kt`
 package com.example.expensetracker.ui.widget
 
 import android.content.Context
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import android.util.Log
+import androidx.glance.appwidget.GlanceAppWidgetManager
 
 object WidgetUpdater {
+    private const val TAG = "WidgetUpdater"
+
     suspend fun update(context: Context) {
-        withContext(Dispatchers.Main) {
-            MonthlySnapshotWidget().updateAll(context)
+        try {
+            val widget = MonthlySnapshotWidget()
+            val manager = GlanceAppWidgetManager(context)
+            val glanceIds = manager.getGlanceIds(widget.javaClass)
+            for (glanceId in glanceIds) {
+                updateWidgetState(context, glanceId)
+                widget.update(context, glanceId)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Widget update failed", e)
         }
     }
 }
@@ -456,7 +496,7 @@ object WidgetUpdater {
 
 ```bash
 git add app/src/main/java/com/example/expensetracker/ui/widget/WidgetUpdater.kt
-git commit -m "feat: add WidgetUpdater helper"
+git commit -m "feat: add WidgetUpdater with state-based updates"
 ```
 
 ---
@@ -583,7 +623,7 @@ class MonthRolloverWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        MonthlySnapshotWidget().updateAll(applicationContext)
+        WidgetUpdater.update(applicationContext)
         return Result.success()
     }
 }

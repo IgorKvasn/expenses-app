@@ -69,3 +69,21 @@ val ExpenseRed = Color(0xFFC62828)
 val ExpenseRedLight = Color(0xFFFFEBEE)
 val ExpenseRedDark = Color(0xFFEF5350)
 val ExpenseRedDarkContainer = Color(0xFF3D1214)
+
+// Fixed colors for category bar chart
+val CategoryColors = mapOf(
+    "Housing" to Color(0xFF1565C0),        // blue
+    "Groceries" to Color(0xFF2E7D32),      // green
+    "Restaurant" to Color(0xFFE65100),     // orange
+    "Transport" to Color(0xFF6A1B9A),      // purple
+    "Utilities" to Color(0xFFF9A825),      // amber
+    "Medical" to Color(0xFFC62828),        // red
+    "Entertainment" to Color(0xFF00838F),  // teal
+    "Clothing" to Color(0xFFAD1457),       // pink
+    "Education" to Color(0xFF283593),      // indigo
+    "Fun" to Color(0xFFFF6F00),            // deep orange
+    "Loan" to Color(0xFF4E342E),           // brown
+    "Savings & Investments" to Color(0xFF00695C), // dark teal
+    "Other" to Color(0xFF546E7A),          // blue grey
+)
+val CategoryColorFallback = Color(0xFF78909C)

@@ -12,6 +12,9 @@ class CategoryRepository @Inject constructor(
 ) {
     fun getAll(): Flow<List<CategoryEntity>> = categoryDao.getAll()
 
+    fun getAllOrderedByExpenseUsage(): Flow<List<CategoryEntity>> =
+        categoryDao.getAllOrderedByExpenseUsage()
+
     suspend fun getById(id: Long): CategoryEntity? = categoryDao.getById(id)
 
     suspend fun insert(category: CategoryEntity): Long = categoryDao.insert(category)

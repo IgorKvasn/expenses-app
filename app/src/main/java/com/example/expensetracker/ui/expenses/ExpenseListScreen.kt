@@ -69,6 +69,7 @@ fun ExpenseListScreen(
     LaunchedEffect(Unit) { viewModel.resetMonth() }
 
     val expenses by viewModel.expenses.collectAsStateWithLifecycle()
+    val monthlyTotal by viewModel.monthlyTotal.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val search by viewModel.search.collectAsStateWithLifecycle()
     val amountMin by viewModel.amountMin.collectAsStateWithLifecycle()
@@ -105,7 +106,7 @@ fun ExpenseListScreen(
             }
         },
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(bottom = padding.calculateBottomPadding()).fillMaxSize()) {
             val selectedMonth by viewModel.selectedMonth.collectAsStateWithLifecycle()
 
             FilterBar(
@@ -164,6 +165,19 @@ fun ExpenseListScreen(
                     }
                 },
             )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Text(
+                    "Total: ${CurrencyFormatter.format(monthlyTotal)}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = ExpenseRed,
+                )
+            }
 
             if (expenses.isEmpty()) {
                 Column(

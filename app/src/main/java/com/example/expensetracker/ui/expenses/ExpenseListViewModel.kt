@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.YearMonth
@@ -36,6 +37,16 @@ class ExpenseListViewModel @Inject constructor(
     val amountMax = MutableStateFlow("")
     val sortOrder = MutableStateFlow(SortOrder.DATE_DESC)
     val selectedMonth = MutableStateFlow<YearMonth?>(YearMonth.now())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val monthlyTotal: StateFlow<Long> = selectedMonth.flatMapLatest { month ->
+        val filter = ExpenseFilter(
+            dateFrom = month?.atDay(1),
+            dateTo = month?.atEndOfMonth(),
+            sortOrder = SortOrder.DATE_DESC,
+        )
+        expenseRepository.getFiltered(filter).map { items -> items.sumOf { it.amountCents } }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val expenses: StateFlow<List<ExpenseEntity>> = combine(

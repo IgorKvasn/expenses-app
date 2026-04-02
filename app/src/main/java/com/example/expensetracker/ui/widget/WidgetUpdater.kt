@@ -1,14 +1,23 @@
 package com.example.expensetracker.ui.widget
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
+import android.util.Log
+import androidx.glance.appwidget.GlanceAppWidgetManager
 
 object WidgetUpdater {
+    private const val TAG = "WidgetUpdater"
+
     suspend fun update(context: Context) {
         try {
-            MonthlySnapshotWidget().updateAll(context)
-        } catch (_: Exception) {
-            // Best-effort — widget update failure must not break data operations
+            val widget = MonthlySnapshotWidget()
+            val manager = GlanceAppWidgetManager(context)
+            val glanceIds = manager.getGlanceIds(widget.javaClass)
+            for (glanceId in glanceIds) {
+                updateWidgetState(context, glanceId)
+                widget.update(context, glanceId)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Widget update failed", e)
         }
     }
 }

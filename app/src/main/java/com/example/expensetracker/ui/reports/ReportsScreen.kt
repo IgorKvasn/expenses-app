@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -80,10 +79,8 @@ fun ReportsScreen(
     var showDateToPicker by remember { mutableStateOf(false) }
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
-    Scaffold { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
@@ -303,7 +300,6 @@ fun ReportsScreen(
             }
             Spacer(modifier = Modifier.height(24.dp))
         }
-    }
 
     if (showDateFromPicker) {
         val state = rememberDatePickerState(

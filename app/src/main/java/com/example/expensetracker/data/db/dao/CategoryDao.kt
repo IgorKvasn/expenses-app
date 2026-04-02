@@ -31,6 +31,14 @@ interface CategoryDao {
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun count(): Int
 
+    @Query("""
+        SELECT c.* FROM categories c
+        LEFT JOIN expenses e ON c.id = e.categoryId
+        GROUP BY c.id
+        ORDER BY COUNT(e.id) DESC, c.name ASC
+    """)
+    fun getAllOrderedByExpenseUsage(): Flow<List<CategoryEntity>>
+
     @Query("SELECT * FROM categories")
     suspend fun getAllSuspend(): List<CategoryEntity>
 

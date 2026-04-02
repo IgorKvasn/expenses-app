@@ -29,7 +29,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -74,47 +73,10 @@ fun RecurringListScreen(
     var showAddMenu by remember { mutableStateOf(false) }
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
-    Scaffold(
-        floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                DropdownMenu(
-                    expanded = showAddMenu,
-                    onDismissRequest = { showAddMenu = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Recurring Expense") },
-                        onClick = {
-                            showAddMenu = false
-                            onAddRecurring()
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Filled.ArrowDownward, contentDescription = null, tint = if (isDark) ExpenseRedDark else ExpenseRed)
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Recurring Income") },
-                        onClick = {
-                            showAddMenu = false
-                            onAddRecurringIncome()
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Filled.ArrowUpward, contentDescription = null, tint = if (isDark) IncomeGreenDark else IncomeGreen)
-                        },
-                    )
-                }
-                FloatingActionButton(
-                    onClick = { showAddMenu = true },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add recurring")
-                }
-            }
-        },
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         if (recurringExpenses.isEmpty() && recurringIncome.isEmpty()) {
             Column(
-                modifier = Modifier.padding(padding).fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -138,7 +100,7 @@ fun RecurringListScreen(
                 )
             }
         } else {
-            LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
                 item {
                     RecurringSummaryCard(summary = summary, isDark = isDark)
                 }
@@ -283,6 +245,46 @@ fun RecurringListScreen(
                         }
                     }
                 }
+            }
+        }
+
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+        ) {
+            DropdownMenu(
+                expanded = showAddMenu,
+                onDismissRequest = { showAddMenu = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Recurring Expense") },
+                    onClick = {
+                        showAddMenu = false
+                        onAddRecurring()
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Filled.ArrowDownward, contentDescription = null, tint = if (isDark) ExpenseRedDark else ExpenseRed)
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text("Recurring Income") },
+                    onClick = {
+                        showAddMenu = false
+                        onAddRecurringIncome()
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Filled.ArrowUpward, contentDescription = null, tint = if (isDark) IncomeGreenDark else IncomeGreen)
+                    },
+                )
+            }
+            FloatingActionButton(
+                onClick = { showAddMenu = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Add recurring")
             }
         }
     }

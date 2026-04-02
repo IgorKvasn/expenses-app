@@ -24,7 +24,7 @@ class AddEditExpenseViewModel @Inject constructor(
     categoryRepository: CategoryRepository,
 ) : ViewModel() {
 
-    val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAll()
+    val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllOrderedByExpenseUsage()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val amount = MutableStateFlow("")

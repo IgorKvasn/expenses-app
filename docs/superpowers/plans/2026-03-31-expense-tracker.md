@@ -1913,6 +1913,24 @@ val Pink40 = Color(0xFF7D5260)
 
 val IncomeGreen = Color(0xFF4CAF50)
 val ExpenseRed = Color(0xFFF44336)
+
+// Fixed colors for category bar chart
+val CategoryColors = mapOf(
+    "Housing" to Color(0xFF1565C0),        // blue
+    "Groceries" to Color(0xFF2E7D32),      // green
+    "Restaurant" to Color(0xFFE65100),     // orange
+    "Transport" to Color(0xFF6A1B9A),      // purple
+    "Utilities" to Color(0xFFF9A825),      // amber
+    "Medical" to Color(0xFFC62828),        // red
+    "Entertainment" to Color(0xFF00838F),  // teal
+    "Clothing" to Color(0xFFAD1457),       // pink
+    "Education" to Color(0xFF283593),      // indigo
+    "Fun" to Color(0xFFFF6F00),            // deep orange
+    "Loan" to Color(0xFF4E342E),           // brown
+    "Savings & Investments" to Color(0xFF00695C), // dark teal
+    "Other" to Color(0xFF546E7A),          // blue grey
+)
+val CategoryColorFallback = Color(0xFF78909C)
 ```
 
 - [ ] **Step 2: Create Type.kt**
@@ -4765,7 +4783,7 @@ class ReportsViewModel @Inject constructor(
 
 - [ ] **Step 2: Create CategoryBarChart**
 
-Uses `ExtraStore` to pass category names alongside chart data, and a `CartesianValueFormatter` to display them on the x-axis instead of numeric indices.
+Uses `ExtraStore` to pass category names alongside chart data, and a `CartesianValueFormatter` to display them on the x-axis instead of numeric indices. Each category gets a distinct bar color via `CategoryColors`. This is achieved by creating one series per category (each non-zero only at its own x-index) with `MergeMode.Stacked`, so each bar renders individually with its assigned color from `ColumnProvider.series`.
 
 ```kotlin
 package com.example.expensetracker.ui.reports
@@ -4774,13 +4792,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.layer.stacked
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
@@ -4792,6 +4810,8 @@ import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
 import com.patrykandpatrick.vico.core.common.Fill
 import com.patrykandpatrick.vico.core.common.data.ExtraStore
 import com.example.expensetracker.domain.model.CategoryReport
+import com.example.expensetracker.ui.theme.CategoryColorFallback
+import com.example.expensetracker.ui.theme.CategoryColors
 
 @Composable
 fun CategoryBarChart(
@@ -4806,7 +4826,13 @@ fun CategoryBarChart(
     LaunchedEffect(report) {
         modelProducer.runTransaction {
             columnSeries {
-                series(report.items.map { it.totalCents / 100.0 })
+                report.items.forEachIndexed { index, item ->
+                    series(
+                        List(report.items.size) { x ->
+                            if (x == index) item.totalCents / 100.0 else 0.0
+                        }
+                    )
+                }
             }
             extras { it[labelListKey] = report.items.map { item -> item.categoryName } }
         }
@@ -4818,12 +4844,16 @@ fun CategoryBarChart(
         }
     }
 
+    val columnComponents = report.items.map { item ->
+        val color = CategoryColors[item.categoryName] ?: CategoryColorFallback
+        rememberLineComponent(fill = Fill(color.toArgb()), thickness = 24.dp)
+    }
+
     CartesianChartHost(
         chart = rememberCartesianChart(
             rememberColumnCartesianLayer(
-                columnProvider = ColumnCartesianLayer.ColumnProvider.series(
-                    rememberLineComponent(fill = Fill(Color(0xFF6650a4).toArgb()), thickness = 24.dp),
-                )
+                columnProvider = ColumnCartesianLayer.ColumnProvider.series(columnComponents),
+                mergeMode = { ColumnCartesianLayer.MergeMode.stacked() },
             ),
             startAxis = VerticalAxis.rememberStart(),
             bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = labelFormatter),
@@ -5777,5 +5807,66 @@ Change `isRecurring = false` to `isRecurring = null` in the `IncomeFilter` so th
 - [x] **Step 3: Add repeat icon to IncomeListScreen**
 
 In the income card composable, wrap the date `Text` in a `Row` and conditionally show `Icons.Filled.Repeat` (16dp, `primary` tint) when `income.isRecurring`.
+
+---
+
+### Task 26: Monthly Total on List Screens
+
+**Goal:** Show the sum of all expenses/income for the selected month at the top of each list screen. The total always reflects the full month regardless of search, category, or amount filters.
+
+**Files modified:**
+- `app/src/main/java/com/example/expensetracker/ui/expenses/ExpenseListViewModel.kt`
+- `app/src/main/java/com/example/expensetracker/ui/expenses/ExpenseListScreen.kt`
+- `app/src/main/java/com/example/expensetracker/ui/income/IncomeListViewModel.kt`
+- `app/src/main/java/com/example/expensetracker/ui/income/IncomeListScreen.kt`
+
+- [x] **Step 1: Add monthlyTotal flow to ExpenseListViewModel**
+
+Add a `monthlyTotal: StateFlow<Long>` that uses `flatMapLatest` on `selectedMonth` to query `expenseRepository.getFiltered` with only month date bounds (no category, search, or amount filters), then maps the result list to `sumOf { it.amountCents }`.
+
+- [x] **Step 2: Add monthlyTotal flow to IncomeListViewModel**
+
+Same approach: `flatMapLatest` on `selectedMonth`, query `incomeRepository.getFiltered` with only month date bounds, map to sum.
+
+- [x] **Step 3: Display total on ExpenseListScreen**
+
+Add a right-aligned `Row` between the `FilterBar` and the list content showing "Total: €X.XX" in `ExpenseRed` with `titleMedium` bold style. Uses `CurrencyFormatter.format(monthlyTotal)`.
+
+- [x] **Step 4: Display total on IncomeListScreen**
+
+Same layout, colored in `IncomeGreen`.
+
+---
+
+### Task 27: Order Categories by Usage in Expense Form
+
+**Goal:** In the add/edit expense screen's category dropdown, order categories by usage count (most used first) instead of alphabetically. Only applies to one-time expenses — income and recurring screens keep alphabetical order.
+
+**Files modified:**
+- `app/src/main/java/com/example/expensetracker/data/db/dao/CategoryDao.kt`
+- `app/src/main/java/com/example/expensetracker/data/repository/CategoryRepository.kt`
+- `app/src/main/java/com/example/expensetracker/ui/expenses/AddEditExpenseViewModel.kt`
+
+- [x] **Step 1: Add getAllOrderedByExpenseUsage() to CategoryDao**
+
+Add a reactive `Flow` query that LEFT JOINs categories with expenses, groups by category, and orders by `COUNT(e.id) DESC, c.name ASC`. Returns `Flow<List<CategoryEntity>>` — same type as `getAll()`, so no new data class needed.
+
+```kotlin
+@Query("""
+    SELECT c.* FROM categories c
+    LEFT JOIN expenses e ON c.id = e.categoryId
+    GROUP BY c.id
+    ORDER BY COUNT(e.id) DESC, c.name ASC
+""")
+fun getAllOrderedByExpenseUsage(): Flow<List<CategoryEntity>>
+```
+
+- [x] **Step 2: Expose in CategoryRepository**
+
+Add `getAllOrderedByExpenseUsage()` passthrough method.
+
+- [x] **Step 3: Use in AddEditExpenseViewModel**
+
+Change `categoryRepository.getAll()` to `categoryRepository.getAllOrderedByExpenseUsage()` in the `categories` StateFlow.
 
 ---

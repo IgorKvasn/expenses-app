@@ -64,6 +64,7 @@ fun IncomeListScreen(
     LaunchedEffect(Unit) { viewModel.resetMonth() }
 
     val incomeItems by viewModel.incomeItems.collectAsStateWithLifecycle()
+    val monthlyTotal by viewModel.monthlyTotal.collectAsStateWithLifecycle()
     val search by viewModel.search.collectAsStateWithLifecycle()
     val amountMin by viewModel.amountMin.collectAsStateWithLifecycle()
     val amountMax by viewModel.amountMax.collectAsStateWithLifecycle()
@@ -98,7 +99,7 @@ fun IncomeListScreen(
             }
         },
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(bottom = padding.calculateBottomPadding()).fillMaxSize()) {
             val selectedMonth by viewModel.selectedMonth.collectAsStateWithLifecycle()
 
             FilterBar(
@@ -114,6 +115,19 @@ fun IncomeListScreen(
                 onSortOrderChange = { viewModel.sortOrder.value = it },
                 onClearFilters = { viewModel.clearFilters() },
             )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Text(
+                    "Total: ${CurrencyFormatter.format(monthlyTotal)}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = IncomeGreen,
+                )
+            }
 
             if (incomeItems.isEmpty()) {
                 Column(

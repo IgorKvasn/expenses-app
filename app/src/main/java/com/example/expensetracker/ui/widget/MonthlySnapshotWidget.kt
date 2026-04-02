@@ -6,29 +6,39 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.color.ColorProviders
 import androidx.glance.color.DayNightColorProvider
+import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.example.expensetracker.MainActivity
+import com.example.expensetracker.R
 import com.example.expensetracker.data.db.AppDatabase
 import com.example.expensetracker.ui.components.CurrencyFormatter
 import com.example.expensetracker.ui.theme.ExpenseRed
@@ -53,6 +63,11 @@ import java.util.Locale
 class MonthlySnapshotWidget : GlanceAppWidget() {
 
     companion object {
+        val KEY_EXPENSE_TOTAL = longPreferencesKey("expense_total")
+        val KEY_INCOME_TOTAL = longPreferencesKey("income_total")
+        val KEY_BALANCE = longPreferencesKey("balance")
+        val KEY_MONTH_LABEL = stringPreferencesKey("month_label")
+
         private val colors = ColorProviders(
             light = lightColorScheme(
                 surface = SurfaceContainerLight,
@@ -72,20 +87,15 @@ class MonthlySnapshotWidget : GlanceAppWidget() {
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val today = LocalDate.now()
-        val yearMonth = YearMonth.from(today)
-        val firstDay = yearMonth.atDay(1).toString()
-        val lastDay = yearMonth.atEndOfMonth().toString()
-
-        val database = AppDatabase.getInstance(context)
-        val expenseTotal = database.expenseDao().getTotalInRange(firstDay, lastDay) ?: 0L
-        val incomeTotal = database.incomeDao().getTotalInRange(firstDay, lastDay) ?: 0L
-        val balance = incomeTotal - expenseTotal
-
-        val monthLabel = yearMonth.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault()) +
-            " " + yearMonth.year
+        updateWidgetState(context, id)
 
         provideContent {
+            val prefs = currentState<androidx.datastore.preferences.core.Preferences>()
+            val expenseTotal = prefs[KEY_EXPENSE_TOTAL] ?: 0L
+            val incomeTotal = prefs[KEY_INCOME_TOTAL] ?: 0L
+            val balance = prefs[KEY_BALANCE] ?: 0L
+            val monthLabel = prefs[KEY_MONTH_LABEL] ?: ""
+
             GlanceTheme(colors = colors) {
                 WidgetContent(
                     monthLabel = monthLabel,
@@ -121,39 +131,65 @@ private fun WidgetContent(
             ),
         )
         Row(
-            modifier = GlanceModifier.padding(top = 2.dp),
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .padding(top = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = CurrencyFormatter.format(expenseTotal),
-                style = TextStyle(
-                    color = DayNightColorProvider(ExpenseRed, ExpenseRedDark),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    provider = ImageProvider(R.drawable.ic_arrow_down),
+                    contentDescription = "Expenses",
+                    modifier = GlanceModifier.size(14.dp),
+                )
+                Spacer(modifier = GlanceModifier.width(2.dp))
+                Text(
+                    text = CurrencyFormatter.format(expenseTotal),
+                    style = TextStyle(
+                        color = DayNightColorProvider(ExpenseRed, ExpenseRedDark),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                )
+            }
             Spacer(modifier = GlanceModifier.width(12.dp))
-            Text(
-                text = CurrencyFormatter.format(incomeTotal),
-                style = TextStyle(
-                    color = DayNightColorProvider(IncomeGreen, IncomeGreenDark),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
-            )
-            Spacer(modifier = GlanceModifier.width(12.dp))
-            Text(
-                text = formatBalance(balance),
-                style = TextStyle(
-                    color = if (balance >= 0) {
-                        DayNightColorProvider(IncomeGreen, IncomeGreenDark)
-                    } else {
-                        DayNightColorProvider(ExpenseRed, ExpenseRedDark)
-                    },
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    provider = ImageProvider(R.drawable.ic_arrow_up),
+                    contentDescription = "Income",
+                    modifier = GlanceModifier.size(14.dp),
+                )
+                Spacer(modifier = GlanceModifier.width(2.dp))
+                Text(
+                    text = CurrencyFormatter.format(incomeTotal),
+                    style = TextStyle(
+                        color = DayNightColorProvider(IncomeGreen, IncomeGreenDark),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                )
+            }
+            Spacer(modifier = GlanceModifier.defaultWeight())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    provider = ImageProvider(R.drawable.ic_arrow_up_down),
+                    contentDescription = "Balance",
+                    modifier = GlanceModifier.size(14.dp),
+                )
+                Spacer(modifier = GlanceModifier.width(2.dp))
+                Text(
+                    text = formatBalance(balance),
+                    style = TextStyle(
+                        color = if (balance >= 0) {
+                            DayNightColorProvider(IncomeGreen, IncomeGreenDark)
+                        } else {
+                            DayNightColorProvider(ExpenseRed, ExpenseRedDark)
+                        },
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+            }
         }
     }
 }
@@ -161,6 +197,26 @@ private fun WidgetContent(
 private fun formatBalance(balanceCents: Long): String {
     val prefix = if (balanceCents >= 0) "+" else ""
     return prefix + CurrencyFormatter.format(balanceCents)
+}
+
+suspend fun updateWidgetState(context: Context, glanceId: GlanceId) {
+    val yearMonth = YearMonth.from(LocalDate.now())
+    val firstDay = yearMonth.atDay(1).toString()
+    val lastDay = yearMonth.atEndOfMonth().toString()
+
+    val database = AppDatabase.getInstance(context)
+    val expenseTotal = database.expenseDao().getTotalInRange(firstDay, lastDay) ?: 0L
+    val incomeTotal = database.incomeDao().getTotalInRange(firstDay, lastDay) ?: 0L
+    val balance = incomeTotal - expenseTotal
+    val monthLabel = yearMonth.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault()) +
+        " " + yearMonth.year
+
+    updateAppWidgetState(context, glanceId) { prefs ->
+        prefs[MonthlySnapshotWidget.KEY_EXPENSE_TOTAL] = expenseTotal
+        prefs[MonthlySnapshotWidget.KEY_INCOME_TOTAL] = incomeTotal
+        prefs[MonthlySnapshotWidget.KEY_BALANCE] = balance
+        prefs[MonthlySnapshotWidget.KEY_MONTH_LABEL] = monthLabel
+    }
 }
 
 class MonthlySnapshotWidgetReceiver : GlanceAppWidgetReceiver() {

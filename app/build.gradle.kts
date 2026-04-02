@@ -93,9 +93,15 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
 
+    implementation(libs.mlkit.text.recognition)
+
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.turbine)
     androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.test.core)
+    androidTestImplementation(libs.test.runner)
+    androidTestImplementation(libs.coroutines.test)
+    androidTestImplementation(libs.junit)
 }

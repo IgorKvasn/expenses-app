@@ -17,6 +17,7 @@ work = "2.10.0"
 junit = "4.13.2"
 mockk = "1.13.14"
 turbine = "1.2.0"
+mlkit-text-recognition = "16.0.1"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
@@ -50,6 +51,9 @@ coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+test-core = { group = "androidx.test", name = "core-ktx", version = "1.6.1" }
+test-runner = { group = "androidx.test", name = "runner", version = "1.6.2" }
+mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkit-text-recognition" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -29,7 +29,7 @@ class AddEditExpenseViewModelTest {
 
     private val expenseRepository = mockk<ExpenseRepository>(relaxed = true)
     private val categoryRepository = mockk<CategoryRepository> {
-        every { getAll() } returns flowOf(emptyList())
+        every { getAllOrderedByExpenseUsage() } returns flowOf(emptyList())
     }
     private val testDispatcher = UnconfinedTestDispatcher()
 

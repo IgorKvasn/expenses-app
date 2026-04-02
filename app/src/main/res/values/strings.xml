@@ -2,4 +2,6 @@
 <resources>
     <string name="shortcut_add_expense_short">Add Expense</string>
     <string name="shortcut_add_expense_long">Add New Expense</string>
+    <string name="widget_description">Monthly expenses, income, and balance</string>
+    <string name="widget_loading">Loading…</string>
 </resources>

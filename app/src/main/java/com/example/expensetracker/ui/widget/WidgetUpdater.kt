@@ -1,6 +1,7 @@
 package com.example.expensetracker.ui.widget
 
 import android.content.Context
+import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

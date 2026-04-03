@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.expensetracker.ui.notifications.NotificationHelper
 import com.example.expensetracker.ui.widget.MonthRolloverWorker
 import dagger.hilt.android.HiltAndroidApp
 import java.util.concurrent.TimeUnit
@@ -13,6 +14,7 @@ class ExpenseTrackerApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         enqueueMonthRolloverWorker()
+        NotificationHelper.createChannel(this)
     }
 
     private fun enqueueMonthRolloverWorker() {

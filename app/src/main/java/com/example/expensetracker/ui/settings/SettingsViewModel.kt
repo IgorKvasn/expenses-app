@@ -4,10 +4,13 @@ import android.content.ContentResolver
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.expensetracker.data.repository.NotificationPreferenceRepository
 import com.example.expensetracker.domain.usecase.ExportImportJsonUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import java.time.LocalDate
@@ -23,6 +26,7 @@ sealed interface ExportImportState {
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val exportImportJsonUseCase: ExportImportJsonUseCase,
+    private val notificationPreferenceRepository: NotificationPreferenceRepository,
 ) : ViewModel() {
 
     private val _exportState = MutableStateFlow<ExportImportState>(ExportImportState.Idle)
@@ -35,6 +39,16 @@ class SettingsViewModel @Inject constructor(
     val showImportConfirmation: StateFlow<Boolean> = _showImportConfirmation
 
     private var pendingImportJson: String? = null
+
+    val isMonthlyBalanceNotificationEnabled: StateFlow<Boolean> =
+        notificationPreferenceRepository.isMonthlyBalanceNotificationEnabled
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setMonthlyBalanceNotificationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            notificationPreferenceRepository.setMonthlyBalanceNotificationEnabled(enabled)
+        }
+    }
 
     fun exportData(cacheDir: File, fileProviderAuthority: String, getUriForFile: (File) -> Uri) {
         viewModelScope.launch {

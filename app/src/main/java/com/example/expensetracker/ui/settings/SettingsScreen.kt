@@ -1,8 +1,12 @@
 package com.example.expensetracker.ui.settings
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +17,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
@@ -30,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,12 +51,21 @@ fun SettingsScreen(
     val exportState by viewModel.exportState.collectAsStateWithLifecycle()
     val importState by viewModel.importState.collectAsStateWithLifecycle()
     val showImportConfirmation by viewModel.showImportConfirmation.collectAsStateWithLifecycle()
+    val isNotificationEnabled by viewModel.isMonthlyBalanceNotificationEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val importFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         uri?.let { viewModel.onImportFileSelected(it, context.contentResolver) }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            viewModel.setMonthlyBalanceNotificationEnabled(true)
+        }
     }
 
     LaunchedEffect(exportState) {
@@ -148,6 +165,33 @@ fun SettingsScreen(
                     .clickable(enabled = !isLoading) {
                         importFilePicker.launch(arrayOf("application/json"))
                     },
+            )
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text("Monthly balance summary") },
+                supportingContent = { Text("Get notified on the 1st of each month with last month's balance") },
+                leadingContent = {
+                    Icon(Icons.Filled.Notifications, contentDescription = null)
+                },
+                trailingContent = {
+                    Switch(
+                        checked = isNotificationEnabled,
+                        onCheckedChange = { enabled ->
+                            if (enabled) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                                    != PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    viewModel.setMonthlyBalanceNotificationEnabled(true)
+                                }
+                            } else {
+                                viewModel.setMonthlyBalanceNotificationEnabled(false)
+                            }
+                        },
+                    )
+                },
             )
         }
         SnackbarHost(

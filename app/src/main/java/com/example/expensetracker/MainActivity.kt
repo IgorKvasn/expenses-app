@@ -33,10 +33,14 @@ class MainActivity : ComponentActivity() {
         }
 
         val navigateToAddExpense = intent.getStringExtra("shortcut_action") == "add_expense"
+        val navigateToReports = intent.getStringExtra("navigate_to") == "reports"
 
         setContent {
             ExpenseTrackerTheme {
-                NavGraph(navigateToAddExpense = navigateToAddExpense)
+                NavGraph(
+                    navigateToAddExpense = navigateToAddExpense,
+                    navigateToReports = navigateToReports,
+                )
             }
         }
     }

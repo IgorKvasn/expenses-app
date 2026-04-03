@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavGraph(navigateToAddExpense: Boolean = false) {
+fun NavGraph(navigateToAddExpense: Boolean = false, navigateToReports: Boolean = false) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -55,6 +55,15 @@ fun NavGraph(navigateToAddExpense: Boolean = false) {
     if (navigateToAddExpense) {
         LaunchedEffect(Unit) {
             navController.navigate(Screen.AddEditExpense.createRoute())
+        }
+    }
+
+    if (navigateToReports) {
+        LaunchedEffect(Unit) {
+            navController.navigate(Screen.Reports.route) {
+                popUpTo(Screen.ExpenseList.route) { saveState = true }
+                launchSingleTop = true
+            }
         }
     }
 

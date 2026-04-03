@@ -11,6 +11,7 @@ import com.example.expensetracker.data.db.dao.IncomeDao
 import com.example.expensetracker.data.db.dao.RecurringExpenseDao
 import com.example.expensetracker.data.db.dao.RecurringExpenseGenerationDao
 import com.example.expensetracker.data.db.dao.RecurringIncomeGenerationDao
+import com.example.expensetracker.data.repository.NotificationPreferenceRepository
 import com.example.expensetracker.data.seed.defaultCategories
 import dagger.Module
 import dagger.Provides
@@ -70,4 +71,10 @@ object DatabaseModule {
     @Provides
     fun provideRecurringIncomeGenerationDao(db: AppDatabase): RecurringIncomeGenerationDao =
         db.recurringIncomeGenerationDao()
+
+    @Provides
+    @Singleton
+    fun provideNotificationPreferenceRepository(
+        @ApplicationContext context: Context,
+    ): NotificationPreferenceRepository = NotificationPreferenceRepository(context)
 }

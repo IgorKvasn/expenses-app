@@ -63,6 +63,7 @@ fun NavGraph(navigateToAddExpense: Boolean = false, navigateToReports: Boolean =
             navController.navigate(Screen.Reports.route) {
                 popUpTo(Screen.ExpenseList.route) { saveState = true }
                 launchSingleTop = true
+                restoreState = true
             }
         }
     }

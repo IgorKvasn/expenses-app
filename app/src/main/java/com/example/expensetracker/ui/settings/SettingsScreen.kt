@@ -37,8 +37,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -53,6 +55,7 @@ fun SettingsScreen(
     val showImportConfirmation by viewModel.showImportConfirmation.collectAsStateWithLifecycle()
     val isNotificationEnabled by viewModel.isMonthlyBalanceNotificationEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val importFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -65,6 +68,10 @@ fun SettingsScreen(
     ) { granted ->
         if (granted) {
             viewModel.setMonthlyBalanceNotificationEnabled(true)
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Notification permission is required to enable this feature")
+            }
         }
     }
 

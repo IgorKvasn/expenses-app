@@ -24,9 +24,11 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import javax.inject.Inject
 
-enum class ReportPeriod { MONTH, QUARTER, YEAR, CUSTOM }
+enum class ReportPeriod { MONTH, YEAR, CUSTOM }
 enum class ReportTab { CATEGORY, INCOME_VS_EXPENSES }
 
 @HiltViewModel
@@ -41,6 +43,7 @@ class ReportsViewModel @Inject constructor(
 
     val selectedPeriod = MutableStateFlow(ReportPeriod.MONTH)
     val selectedTab = MutableStateFlow(ReportTab.CATEGORY)
+    val periodOffset = MutableStateFlow(0)
     val customDateFrom = MutableStateFlow(YearMonth.now().atDay(1))
     val customDateTo = MutableStateFlow(YearMonth.now().atEndOfMonth())
 
@@ -62,6 +65,30 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
+    fun navigateBack() {
+        periodOffset.value--
+        loadReports()
+    }
+
+    fun navigateForward() {
+        periodOffset.value++
+        loadReports()
+    }
+
+    fun periodLabel(): String {
+        val now = YearMonth.now()
+        return when (selectedPeriod.value) {
+            ReportPeriod.MONTH -> {
+                val month = now.plusMonths(periodOffset.value.toLong())
+                month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+            }
+            ReportPeriod.YEAR -> {
+                (now.year + periodOffset.value).toString()
+            }
+            ReportPeriod.CUSTOM -> ""
+        }
+    }
+
     fun exportToExcel(context: Context) {
         viewModelScope.launch {
             val (from, to) = getDateRange()
@@ -69,7 +96,7 @@ class ReportsViewModel @Inject constructor(
                 ExpenseFilter(dateFrom = from, dateTo = to)
             ).first()
             val income = incomeRepository.getFiltered(
-                IncomeFilter(dateFrom = from, dateTo = to)
+                IncomeFilter(isRecurring = false, dateFrom = from, dateTo = to)
             ).first()
             val categories = categoryRepository.getAll().first().associateBy { it.id }
 
@@ -93,12 +120,14 @@ class ReportsViewModel @Inject constructor(
     private fun getDateRange(): Pair<LocalDate, LocalDate> {
         val now = YearMonth.now()
         return when (selectedPeriod.value) {
-            ReportPeriod.MONTH -> now.atDay(1) to now.atEndOfMonth()
-            ReportPeriod.QUARTER -> {
-                val quarterStart = now.withMonth(((now.monthValue - 1) / 3) * 3 + 1)
-                quarterStart.atDay(1) to quarterStart.plusMonths(2).atEndOfMonth()
+            ReportPeriod.MONTH -> {
+                val month = now.plusMonths(periodOffset.value.toLong())
+                month.atDay(1) to month.atEndOfMonth()
             }
-            ReportPeriod.YEAR -> LocalDate.of(now.year, 1, 1) to LocalDate.of(now.year, 12, 31)
+            ReportPeriod.YEAR -> {
+                val year = now.year + periodOffset.value
+                LocalDate.of(year, 1, 1) to LocalDate.of(year, 12, 31)
+            }
             ReportPeriod.CUSTOM -> customDateFrom.value to customDateTo.value
         }
     }

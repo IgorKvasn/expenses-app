@@ -43,7 +43,7 @@ class ExportToExcelUseCase @Inject constructor() {
         categories: Map<Long, CategoryEntity>,
     ) {
         val sheet = workbook.createSheet("Expenses")
-        val headers = listOf("Date", "Amount (€)", "Category", "Note")
+        val headers = listOf("Date", "Amount (€)", "Category", "Note", "Recurring", "Created")
         val headerRow = sheet.createRow(0)
         headers.forEachIndexed { i, header ->
             val cell = headerRow.createCell(i)
@@ -57,12 +57,16 @@ class ExportToExcelUseCase @Inject constructor() {
             row.createCell(1).setCellValue(expense.amountCents / 100.0)
             row.createCell(2).setCellValue(categories[expense.categoryId]?.name ?: "Unknown")
             row.createCell(3).setCellValue(expense.note ?: "")
+            row.createCell(4).setCellValue(if (expense.recurringExpenseId != null) "Yes" else "No")
+            row.createCell(5).setCellValue(expense.createdAt.toString())
         }
 
-        sheet.setColumnWidth(0, 12 * 256) // Date
-        sheet.setColumnWidth(1, 12 * 256) // Amount
-        sheet.setColumnWidth(2, 20 * 256) // Category
-        sheet.setColumnWidth(3, 30 * 256) // Note
+        sheet.setColumnWidth(0, 12 * 256)
+        sheet.setColumnWidth(1, 12 * 256)
+        sheet.setColumnWidth(2, 20 * 256)
+        sheet.setColumnWidth(3, 30 * 256)
+        sheet.setColumnWidth(4, 10 * 256)
+        sheet.setColumnWidth(5, 22 * 256)
     }
 
     private fun writeIncomeSheet(
@@ -71,7 +75,7 @@ class ExportToExcelUseCase @Inject constructor() {
         income: List<IncomeEntity>,
     ) {
         val sheet = workbook.createSheet("Income")
-        val headers = listOf("Date", "Amount (€)", "Source", "Note")
+        val headers = listOf("Date", "Amount (€)", "Source", "Note", "Recurring", "Interval", "Created")
         val headerRow = sheet.createRow(0)
         headers.forEachIndexed { i, header ->
             val cell = headerRow.createCell(i)
@@ -85,11 +89,17 @@ class ExportToExcelUseCase @Inject constructor() {
             row.createCell(1).setCellValue(item.amountCents / 100.0)
             row.createCell(2).setCellValue(item.source)
             row.createCell(3).setCellValue(item.note ?: "")
+            row.createCell(4).setCellValue(if (item.recurringIncomeId != null) "Yes" else "No")
+            row.createCell(5).setCellValue(item.recurrenceInterval?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "")
+            row.createCell(6).setCellValue(item.createdAt.toString())
         }
 
-        sheet.setColumnWidth(0, 12 * 256) // Date
-        sheet.setColumnWidth(1, 12 * 256) // Amount
-        sheet.setColumnWidth(2, 20 * 256) // Source
-        sheet.setColumnWidth(3, 30 * 256) // Note
+        sheet.setColumnWidth(0, 12 * 256)
+        sheet.setColumnWidth(1, 12 * 256)
+        sheet.setColumnWidth(2, 20 * 256)
+        sheet.setColumnWidth(3, 30 * 256)
+        sheet.setColumnWidth(4, 10 * 256)
+        sheet.setColumnWidth(5, 14 * 256)
+        sheet.setColumnWidth(6, 22 * 256)
     }
 }

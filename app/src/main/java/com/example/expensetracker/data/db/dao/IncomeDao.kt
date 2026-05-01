@@ -48,6 +48,7 @@ interface IncomeDao {
     @Query("""
         SELECT SUM(amountCents) FROM income
         WHERE date >= :dateFrom AND date <= :dateTo
+          AND isRecurring = 0
     """)
     suspend fun getTotalInRange(dateFrom: String, dateTo: String): Long?
 

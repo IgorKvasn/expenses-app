@@ -18,6 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material3.Card
@@ -103,6 +105,7 @@ fun ReportsScreen(
                         selected = selectedPeriod == period,
                         onClick = {
                             viewModel.selectedPeriod.value = period
+                            viewModel.periodOffset.value = 0
                             viewModel.loadReports()
                         },
                         label = { Text(period.name.lowercase().replaceFirstChar { it.uppercase() }) },
@@ -111,6 +114,34 @@ fun ReportsScreen(
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         ),
                     )
+                }
+            }
+
+            if (selectedPeriod != ReportPeriod.CUSTOM) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = { viewModel.navigateBack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            contentDescription = "Previous period",
+                        )
+                    }
+                    Text(
+                        viewModel.periodLabel(),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                    )
+                    IconButton(onClick = { viewModel.navigateForward() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Next period",
+                        )
+                    }
                 }
             }
 
